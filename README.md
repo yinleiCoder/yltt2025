@@ -49,6 +49,12 @@ npm run dev
 - 公开读取域名填写 `OSS_PUBLIC_BASE_URL`；接入 Cloudflare 后只需切换 `MEDIA_CDN_BASE_URL`。
 - 照片首页通过 OSS 图片处理输出 WebP/缩放 URL；视频只接受 H.264/AAC MP4。MOV、HEVC、ProRes 需先转码。
 
+## Cloudflare
+
+生产环境继续使用 Vercel 托管 Next.js；Cloudflare 负责 DNS、HTTPS 代理和媒体 CDN。完整的 DNS 记录、OSS 自定义域名、缓存规则、验证与回滚步骤见 [`docs/deployment/cloudflare.md`](docs/deployment/cloudflare.md)。
+
+配置 Cloudflare 媒体域名后，将 `MEDIA_CDN_BASE_URL` 设置为 `https://<media-hostname>`；该变量优先于 `OSS_PUBLIC_BASE_URL`，上传签名链路不变。
+
 ## 路由
 
 - `/`：精选接触表首页，GSAP `SplitText`/`ScrollTrigger` 动效
