@@ -3,12 +3,8 @@ import {
   Clapperboard,
   FileText,
   GalleryHorizontalEnd,
-  LogIn,
 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
-
-import { PublicAuthControls } from "@/features/auth/components/public-auth-controls";
 import {
   type HomepageArchive,
   type HomepageArchiveItem,
@@ -35,25 +31,24 @@ export function ArchiveHome({ archive }: ArchiveHomeProps) {
     : archive.items;
 
   return (
-    <main className="min-h-dvh bg-[#111111] text-[#f7f7f7]" id="home-archive">
+    <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]" id="home-archive">
       <HomeArchiveMotion />
-      <SiteHeader />
       <section className="mx-auto grid w-full max-w-7xl gap-10 px-5 pb-18 pt-10 sm:px-8 lg:grid-cols-12 lg:gap-14 lg:px-12 lg:pb-24 lg:pt-16">
         <div className="flex flex-col justify-between lg:col-span-5">
           <div>
-            <p className="font-mono text-[0.7rem] leading-5 text-[#9b9b9b]">YLTT2025 / 私人影像档案</p>
+            <p className="font-mono text-[0.7rem] leading-5 text-[#222222]">YLTT2025 / 私人影像档案</p>
             <h1
               className="mt-6 max-w-xl font-[family-name:var(--font-editorial)] text-5xl leading-[1.02] text-pretty sm:text-6xl lg:text-7xl"
               data-home-title
             >
-              光落下时，故事开始留影。
+              光落下时，故事开始留影
             </h1>
-            <p className="mt-7 max-w-md text-sm leading-7 text-[#bababa]">
+            <p className="mt-7 max-w-md text-sm leading-7 text-[#222222]">
               摄影、短片与恋爱故事被收进同一组接触表。每一格保留发生的时间、光线与地点。
             </p>
           </div>
-          <div className="mt-12 flex items-center gap-3 text-xs text-[#a8a8a8] lg:mt-20">
-            <span className="h-px w-10 bg-[#555555]" />
+          <div className="mt-12 flex items-center gap-3 text-xs text-[#222222] lg:mt-20">
+            <span className="h-px w-10 bg-[#222222]" />
             <span>持续整理中</span>
           </div>
         </div>
@@ -70,37 +65,11 @@ export function ArchiveHome({ archive }: ArchiveHomeProps) {
   );
 }
 
-function SiteHeader() {
-  return (
-    <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
-      <a className="font-mono text-xs font-medium tracking-[0.18em]" href="#home-archive">YLTT2025</a>
-      <div className="flex items-center gap-3">
-        <Link className="hidden text-xs text-[#a8a8a8] transition-colors hover:text-white sm:inline" href="/photography">摄影</Link>
-        <Link className="hidden text-xs text-[#a8a8a8] transition-colors hover:text-white sm:inline" href="/videos">短片</Link>
-        <Link className="hidden text-xs text-[#a8a8a8] transition-colors hover:text-white sm:inline" href="/stories">故事</Link>
-        <a className="hidden text-xs text-[#a8a8a8] transition-colors hover:text-white sm:inline" href="#archive">档案</a>
-        <Suspense fallback={<AuthLoginFallback />}>
-          <PublicAuthControls />
-        </Suspense>
-      </div>
-    </header>
-  );
-}
-
-function AuthLoginFallback() {
-  return (
-    <Link className="inline-flex h-7 items-center justify-center gap-1 border border-[#3b3b3b] px-2.5 text-[0.8rem] font-medium transition-colors hover:border-[#f7f7f7]" href="/login">
-      <LogIn aria-hidden="true" />
-      登录
-    </Link>
-  );
-}
-
 function HeroPlate({ item }: { item: HomepageArchiveItem }) {
   const media = item.media;
 
   return (
-    <article className="border border-[#3a3a3a] bg-[#171717] p-2 sm:p-3" data-home-hero-media>
+    <article className="border border-[#d2d2d2] bg-[rgb(248,248,248)] p-2 sm:p-3" data-home-hero-media>
       <div className="relative aspect-[4/5] overflow-hidden bg-[#232323] sm:aspect-[16/11]">
         {media?.previewUrl ? (
           <img
@@ -115,14 +84,14 @@ function HeroPlate({ item }: { item: HomepageArchiveItem }) {
         ) : (
           <PlatePlaceholder kind={item.kind} />
         )}
-        <p className="absolute bottom-0 left-0 bg-[#111111]/90 px-3 py-2 font-mono text-[0.65rem] text-[#d6d6d6]">
-          {formatKind(item.kind)} / FEATURED
+        <p className="absolute bottom-0 left-0 bg-[#FFF083] px-3 py-2 font-mono text-[0.65rem] text-[#222222]">
+          {formatKind(item.kind)} / 精选
         </p>
       </div>
       <div className="grid gap-6 px-2 pb-2 pt-5 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <h2 className="font-[family-name:var(--font-editorial)] text-3xl leading-tight sm:text-4xl">{item.title}</h2>
-          {item.excerpt ? <p className="mt-3 max-w-xl text-sm leading-6 text-[#ababab]">{item.excerpt}</p> : null}
+          {item.excerpt ? <p className="mt-3 max-w-xl text-sm leading-6 text-[#222222]">{item.excerpt}</p> : null}
         </div>
         <ArchiveIndex item={item} />
       </div>
@@ -132,11 +101,11 @@ function HeroPlate({ item }: { item: HomepageArchiveItem }) {
 
 function EmptyHero({ hasMediaConfiguration }: { hasMediaConfiguration: boolean }) {
   return (
-    <div className="flex min-h-[28rem] flex-col justify-between border border-dashed border-[#4b4b4b] bg-[#161616] p-6 sm:p-8" data-home-hero-media>
-      <GalleryHorizontalEnd className="size-7 text-[#ababab]" strokeWidth={1.25} />
+    <div className="flex min-h-[28rem] flex-col justify-between border border-dashed border-[#bcbcbc] bg-[rgb(248,248,248)] p-6 sm:p-8" data-home-hero-media>
+      <GalleryHorizontalEnd className="size-7 text-[#222222]" strokeWidth={1.25} />
       <div>
         <h2 className="font-[family-name:var(--font-editorial)] text-4xl leading-tight">第一张精选作品会在这里显影。</h2>
-        <p className="mt-4 max-w-md text-sm leading-7 text-[#a8a8a8]">
+        <p className="mt-4 max-w-md text-sm leading-7 text-[#222222]">
           {hasMediaConfiguration
             ? "使用管理员后台上传并发布作品后，它会自动进入首页档案。"
             : "配置媒体读取域名并在管理员后台发布作品后，首页会自动建立接触表。"}
@@ -148,14 +117,14 @@ function EmptyHero({ hasMediaConfiguration }: { hasMediaConfiguration: boolean }
 
 function ArchiveSection({ items }: { items: HomepageArchiveItem[] }) {
   return (
-    <section className="border-t border-[#303030]" id="archive">
+    <section id="archive">
       <div className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
-        <div className="flex flex-col justify-between gap-4 border-b border-[#303030] pb-7 sm:flex-row sm:items-end">
+        <div className="flex flex-col justify-between gap-4 border-b border-[#d2d2d2] pb-7 sm:flex-row sm:items-end">
           <div>
-            <p className="font-mono text-[0.7rem] text-[#979797]">CONTACT SHEETS</p>
+            <p className="font-mono text-[0.7rem] text-[#222222]">影像接触表</p>
             <h2 className="mt-3 font-[family-name:var(--font-editorial)] text-4xl leading-tight sm:text-5xl">精选档案</h2>
           </div>
-          <p className="max-w-xs text-sm leading-6 text-[#a8a8a8]">每一个画幅都由后台的精选标记驱动，并保留相应的影像索引。</p>
+          <p className="max-w-xs text-sm leading-6 text-[#222222]">每一个画幅都由后台的精选标记驱动，并保留相应的影像索引。</p>
         </div>
         {items.length ? (
           <div className="mt-8 grid auto-rows-[16rem] gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:auto-rows-[13rem]">
@@ -164,10 +133,10 @@ function ArchiveSection({ items }: { items: HomepageArchiveItem[] }) {
             ))}
           </div>
         ) : (
-          <div className="grid min-h-52 place-items-center border-b border-[#303030] py-10 text-center">
+          <div className="grid min-h-52 place-items-center border-b border-[#d2d2d2] bg-[rgb(248,248,248)] py-10 text-center">
             <div>
               <p className="font-[family-name:var(--font-editorial)] text-2xl">等待下一格画面。</p>
-              <p className="mt-3 text-sm text-[#9b9b9b]">已发布的精选摄影、短片和故事会出现在这里。</p>
+              <p className="mt-3 text-sm text-[#222222]">已发布的精选摄影、短片和故事会出现在这里。</p>
             </div>
           </div>
         )}
@@ -180,7 +149,7 @@ function ArchiveCard({ className, item }: { className: string; item: HomepageArc
   const media = item.media;
 
   return (
-    <article className={`group relative min-w-0 overflow-hidden border border-[#343434] bg-[#1b1b1b] ${className}`} data-archive-card>
+    <article className={`group relative min-w-0 overflow-hidden border border-[#d2d2d2] bg-[rgb(248,248,248)] ${className}`} data-archive-card>
       {media?.previewUrl ? (
         <img
           alt={media.type === "photo" ? media.altText ?? item.title : `${item.title} 的视频封面`}
@@ -217,12 +186,13 @@ function PlatePlaceholder({ kind }: { kind: HomepageArchiveItem["kind"] }) {
 
 function ArchiveIndex({ compact = false, item }: { compact?: boolean; item: HomepageArchiveItem }) {
   const rows = getIndexRows(item, compact);
+  const valueClassName = compact ? "text-[#f8f8f8]" : "text-[#222222]";
 
   return (
-    <dl className="font-mono text-[0.65rem] leading-5 text-[#cbcbcb]" data-home-hero-index={!compact || undefined}>
+    <dl className={`font-mono text-[0.65rem] leading-5 ${valueClassName}`} data-home-hero-index={!compact || undefined}>
       {rows.map((row) => (
         <div className="flex gap-2" key={row.label}>
-          <dt className="text-[#858585]">{row.label}</dt>
+          <dt className={compact ? "text-[#f8f8f8]" : "text-[#222222]"}>{row.label}</dt>
           <dd className="min-w-0 truncate">{row.value}</dd>
         </div>
       ))}
@@ -231,15 +201,15 @@ function ArchiveIndex({ compact = false, item }: { compact?: boolean; item: Home
 }
 
 function getIndexRows(item: HomepageArchiveItem, compact: boolean) {
-  const rows = [{ label: "DATE", value: formatDate(item.publishedAt) }];
+  const rows = [{ label: "日期", value: formatDate(item.publishedAt) }];
   const location = formatLocation(item);
-  if (location) rows.push({ label: "PLACE", value: location });
+  if (location) rows.push({ label: "地点", value: location });
 
   if (item.media?.type === "photo") {
     const photoRows = [
-      item.media.aperture ? { label: "LENS", value: `f/${item.media.aperture}` } : null,
-      item.media.shutterSpeed ? { label: "EXPOSURE", value: item.media.shutterSpeed } : null,
-      item.media.iso ? { label: "ISO", value: String(item.media.iso) } : null,
+      item.media.aperture ? { label: "镜头", value: `f/${item.media.aperture}` } : null,
+      item.media.shutterSpeed ? { label: "曝光", value: item.media.shutterSpeed } : null,
+      item.media.iso ? { label: "感光度", value: String(item.media.iso) } : null,
     ].filter((row): row is { label: string; value: string } => Boolean(row));
 
     rows.push(...(compact ? photoRows.slice(0, 1) : photoRows));
@@ -249,7 +219,7 @@ function getIndexRows(item: HomepageArchiveItem, compact: boolean) {
 }
 
 function formatKind(kind: HomepageArchiveItem["kind"]) {
-  return kind === "photo" ? "PHOTOGRAPH" : kind === "video" ? "MOTION" : "STORY";
+  return kind === "photo" ? "摄影" : kind === "video" ? "短片" : "故事";
 }
 
 function formatDate(value: string) {

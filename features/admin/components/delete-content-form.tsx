@@ -14,7 +14,7 @@ export function DeleteContentForm({ id }: { id: string }) {
       }}
     >
       <input name="id" type="hidden" value={id} />
-      <Button size="sm" type="submit" variant="destructive">Delete</Button>
+      <Button size="sm" type="submit" variant="destructive">删除内容</Button>
     </form>
   );
 }

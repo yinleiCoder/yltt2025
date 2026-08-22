@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export type CurrentProfile = {
   id: string;
   displayName: string | null;
+  avatarUrl: string | null;
   role: "user" | "admin";
 };
 
@@ -32,7 +33,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, role")
+    .select("id, display_name, avatar_url, role")
     .eq("id", userData.user.id)
     .maybeSingle();
 
@@ -47,6 +48,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
   return {
     id: data.id as string,
     displayName: data.display_name as string | null,
+    avatarUrl: data.avatar_url as string | null,
     role: data.role as CurrentProfile["role"],
   };
 });

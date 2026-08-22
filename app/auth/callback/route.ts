@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { resolveAuthRedirectPath } from "@/features/auth/domain/redirect-path";
+import { getAuthErrorRedirectPath } from "@/features/auth/domain/auth-feedback";
 import { getPublicEnvironment } from "@/lib/env";
 import { createServerClient } from "@supabase/ssr";
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   if (authError) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(authError)}`, request.url),
+      new URL(getAuthErrorRedirectPath(authError, next), request.url),
     );
   }
 
@@ -39,7 +40,9 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL("/login?error=callback", request.url));
+    return NextResponse.redirect(
+      new URL(getAuthErrorRedirectPath("callback", next), request.url),
+    );
   }
 
   return response;

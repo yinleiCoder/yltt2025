@@ -1,6 +1,6 @@
-import Link from "next/link";
-
+import { AuthPageMotion } from "@/features/auth/components/auth-page-motion";
 import { resolveAuthRedirectPath } from "@/features/auth/domain/redirect-path";
+import { getAuthErrorMessage } from "@/features/auth/domain/auth-feedback";
 import { LoginForm } from "@/features/auth/components/login-form";
 
 type LoginPageProps = {
@@ -12,14 +12,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const next = resolveAuthRedirectPath(params.next);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
-      <Link className="mb-12 text-sm font-medium" href="/">YlTt2025</Link>
-      <h1 className="text-3xl font-semibold">Login</h1>
-      <p className="mt-3 text-sm text-muted-foreground">Return to the archive.</p>
-      {params["check-email"] ? <p className="mt-6 text-sm">Check your inbox to confirm your email address.</p> : null}
-      {params.error ? <p className="mt-6 text-sm text-destructive">The sign-in link expired or could not be verified.</p> : null}
-      <LoginForm next={next} />
-      <p className="mt-8 text-sm text-muted-foreground">No account? <Link className="text-foreground underline" href="/register">Create one</Link>.</p>
-    </main>
+    <AuthPageMotion>
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 text-foreground md:p-10">
+        <div className="w-full max-w-sm" data-auth-motion="form">
+          {params["check-email"] ? <p className="mb-6 text-center text-sm text-muted-foreground">确认邮件已发送，请前往邮箱完成验证后登录。</p> : null}
+          {params.error ? (
+            <p className="mb-6 text-center text-sm text-destructive">
+              {getAuthErrorMessage(params.error)}
+            </p>
+          ) : null}
+          <LoginForm next={next} />
+        </div>
+      </div>
+    </AuthPageMotion>
   );
 }

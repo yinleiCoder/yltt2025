@@ -40,6 +40,17 @@ export function createPublicMediaUrl({
   return publicUrl.toString();
 }
 
+export function createVideoPosterUrl({ baseUrl, objectKey }: Omit<PublicMediaUrlInput, "imageWidth">): string {
+  const mediaBaseUrl = toMediaBaseUrl(baseUrl);
+  const objectPath = toSafeObjectPath(objectKey);
+  const publicUrl = new URL(objectPath, mediaBaseUrl);
+  if (!publicUrl.pathname.startsWith(mediaBaseUrl.pathname)) {
+    throw new PublicMediaUrlError("The media object key is outside the configured base path.");
+  }
+  publicUrl.searchParams.set("x-oss-process", "video/snapshot,t_1000,f_jpg,w_1600");
+  return publicUrl.toString();
+}
+
 function toMediaBaseUrl(baseUrl: string): URL {
   let parsedUrl: URL;
 

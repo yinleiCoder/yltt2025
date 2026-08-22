@@ -3,15 +3,27 @@
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ContentMediaUploadError,
+  readContentPhotoExif,
+  uploadContentMedia,
+} from "@/features/admin/components/media-upload";
 import { readPhotoExif } from "@/features/media/client/read-photo-exif";
 import {
   hasPhotoGps,
   mapPhotoExifToFormValues,
   type PhotoExifFormValues,
 } from "@/features/media/domain/photo-exif-form";
+import { MediaFilePreview } from "@/features/media/components/media-file-preview";
+import { StoryMarkdownEditor } from "@/features/admin/components/story-markdown-editor";
+import { getCurrentLocation, reverseGeocode } from "@/features/media/client/location";
 
 export type ContentFormActionState = {
   error?: string;
@@ -68,6 +80,12 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [exifError, setExifError] = useState<string | null>(null);
   const [exifStatus, setExifStatus] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
+  const [locationValues, setLocationValues] = useState({
+    label: initialValues?.locationLabel ?? "",
+    city: initialValues?.city ?? "",
+    region: initialValues?.region ?? "",
+  });
   const [photoValues, setPhotoValues] = useState<PhotoExifFormValues>(() => mapInitialPhotoValues(initialValues));
   const [isUploading, startUpload] = useTransition();
   const [isSubmitting, startSubmit] = useTransition();
@@ -81,20 +99,49 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     setMediaFile(file);
     setExifError(null);
     setExifStatus(null);
+    setLocationStatus(null);
 
     if (!file || kind !== "photo") return;
 
+    const result = await readContentPhotoExif(file, readPhotoExif);
+    if (!result.ok) {
+      setExifError(result.error);
+      return;
+    }
+
     try {
-      const exif = await readPhotoExif(file);
+      const exif = result.exif;
       setPhotoValues(mapPhotoExifToFormValues(exif));
       if (hasPhotoGps(exif)) {
         setLocationVisibility("precise");
-        setExifStatus("已读取照片参数和 GPS 坐标。请确认城市、地区与地点标签后再提交。");
+        const place = await reverseGeocode(exif.latitude!, exif.longitude!);
+        if (place) {
+          setLocationValues((current) => ({ label: place.label ?? current.label, city: place.city ?? current.city, region: place.region ?? current.region }));
+          setLocationStatus("已根据照片 GPS 建议地点，请确认后再提交。");
+        } else {
+          setLocationStatus("已读取 GPS 坐标，但地点名称解析失败，请手动填写。");
+        }
+        setExifStatus("已读取照片参数和 GPS 坐标。");
       } else {
         setExifStatus("已读取照片参数。图片未包含 GPS 坐标，请确认地点隐私级别。");
       }
-    } catch (error) {
-      setExifError(error instanceof Error ? error.message : "无法读取这张照片的 EXIF 信息。");
+    } catch {
+      setExifError("无法读取这张照片的 EXIF 信息。");
+    }
+  }
+
+  async function useCurrentLocation() {
+    setLocationStatus("正在获取当前位置...");
+    try {
+      const coords = await getCurrentLocation();
+      updatePhotoValue("latitude", String(coords.latitude));
+      updatePhotoValue("longitude", String(coords.longitude));
+      setLocationVisibility("precise");
+      const place = await reverseGeocode(coords.latitude, coords.longitude);
+      if (place) setLocationValues((current) => ({ label: place.label ?? current.label, city: place.city ?? current.city, region: place.region ?? current.region }));
+      setLocationStatus(place ? "已获取当前位置并解析地点，请确认后再提交。" : "已获取坐标，但地点名称解析失败，请手动填写。");
+    } catch {
+      setLocationStatus("无法获取当前位置，请检查浏览器权限或手动填写地点。");
     }
   }
 
@@ -111,92 +158,69 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       try {
         setUploadError(null);
         if (kind !== "story" && mediaFile) {
-          const signatureResponse = await fetch("/api/admin/media/upload-signature", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: mediaFile.name,
-              mimeType: mediaFile.type,
-              size: mediaFile.size,
-            }),
-          });
-          const signature = await signatureResponse.json();
-          if (!signatureResponse.ok) throw new Error(signature.error ?? "Could not prepare the media upload.");
-
-          const uploadResponse = await fetch(signature.uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": mediaFile.type },
-            body: mediaFile,
-          });
-          if (!uploadResponse.ok) throw new Error("The media upload was rejected by OSS.");
-          formData.set("objectKey", signature.objectKey);
+          formData.set("objectKey", await uploadContentMedia(mediaFile));
         }
 
         if (kind !== "story" && !formData.get("objectKey")) {
-          throw new Error("Choose a media file before creating this item.");
+          throw new Error("创建此内容前请先选择媒体文件。");
         }
 
         startSubmit(() => submitAction(formData));
       } catch (error) {
-        setUploadError(error instanceof Error ? error.message : "Could not upload media.");
+        setUploadError(
+          error instanceof ContentMediaUploadError
+            ? error.message
+            : "媒体上传失败，请稍后重试。",
+        );
       }
     });
   }
 
   return (
-    <form className="grid max-w-2xl gap-5 py-10" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
+    <form className="grid max-w-3xl gap-6 py-8" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
       {initialValues?.id ? <input name="id" type="hidden" value={initialValues.id} /> : null}
       {isEdit ? <input name="kind" type="hidden" value={kind} /> : null}
-      <div className="grid gap-2">
-        <label htmlFor="kind">Kind</label>
-        <select className="h-9 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60" disabled={isEdit} id="kind" name={isEdit ? undefined : "kind"} onChange={(event) => handleKindChange(event.target.value as ContentFormInitialValues["kind"])} value={kind}>
-          <option value="photo">Photography</option>
-          <option value="video">Short video</option>
-          <option value="story">Love story</option>
-        </select>
-      </div>
-      <div className="grid gap-2"><label htmlFor="title">Title</label><Input defaultValue={initialValues?.title ?? ""} id="title" name="title" required /></div>
-      <div className="grid gap-2"><label htmlFor="slug">Slug</label><Input defaultValue={initialValues?.slug ?? ""} id="slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></div>
-      <div className="grid gap-2"><label htmlFor="excerpt">Excerpt</label><Textarea defaultValue={initialValues?.excerpt ?? ""} id="excerpt" name="excerpt" /></div>
-      {kind === "story" ? <div className="grid gap-2"><label htmlFor="markdownBody">Markdown</label><Textarea className="min-h-48" defaultValue={initialValues?.markdownBody ?? ""} id="markdownBody" name="markdownBody" /></div> : null}
-      {kind !== "story" ? <div className="grid gap-2"><label htmlFor="media">{isEdit ? "Replace media (optional)" : kind === "photo" ? "Photo" : "H.264/AAC MP4"}</label><Input accept={kind === "photo" ? "image/jpeg,image/png,image/webp" : "video/mp4"} id="media" onChange={(event) => void handleMediaChange(event.target.files?.[0] ?? null)} type="file" /></div> : null}
-      {kind === "photo" ? <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2"><label htmlFor="aperture">Aperture (f-stop)</label><Input id="aperture" name="aperture" onChange={(event) => updatePhotoValue("aperture", event.target.value)} placeholder="e.g. 2.8" type="number" step="0.1" value={photoValues.aperture ?? ""} /></div>
-        <div className="grid gap-2"><label htmlFor="shutterSpeed">Shutter speed</label><Input id="shutterSpeed" name="shutterSpeed" onChange={(event) => updatePhotoValue("shutterSpeed", event.target.value)} placeholder="e.g. 1/250" value={photoValues.shutterSpeed ?? ""} /></div>
-        <div className="grid gap-2"><label htmlFor="iso">ISO</label><Input id="iso" name="iso" onChange={(event) => updatePhotoValue("iso", event.target.value)} placeholder="e.g. 400" type="number" value={photoValues.iso ?? ""} /></div>
-        <div className="grid gap-2"><label htmlFor="focalLengthMm">Focal length (mm)</label><Input id="focalLengthMm" name="focalLengthMm" onChange={(event) => updatePhotoValue("focalLengthMm", event.target.value)} placeholder="e.g. 35" type="number" step="0.1" value={photoValues.focalLengthMm ?? ""} /></div>
-        <div className="grid gap-2"><label htmlFor="cameraMake">Camera make</label><Input id="cameraMake" name="cameraMake" onChange={(event) => updatePhotoValue("cameraMake", event.target.value)} placeholder="e.g. Canon" value={photoValues.cameraMake ?? ""} /></div>
-        <div className="grid gap-2"><label htmlFor="cameraModel">Camera model</label><Input id="cameraModel" name="cameraModel" onChange={(event) => updatePhotoValue("cameraModel", event.target.value)} placeholder="e.g. EOS R5" value={photoValues.cameraModel ?? ""} /></div>
-        <div className="col-span-2 grid gap-2"><label htmlFor="lens">Lens</label><Input id="lens" name="lens" onChange={(event) => updatePhotoValue("lens", event.target.value)} placeholder="e.g. RF 35mm F1.8" value={photoValues.lens ?? ""} /></div>
+      <FieldGroup className="grid gap-5 md:grid-cols-2">
+        <Field><FieldLabel htmlFor="kind">内容类型</FieldLabel><Select disabled={isEdit} name={isEdit ? undefined : "kind"} value={kind} onValueChange={(value) => handleKindChange(value as ContentFormInitialValues["kind"])}><SelectTrigger id="kind"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="photo">摄影</SelectItem><SelectItem value="video">短片</SelectItem><SelectItem value="story">故事</SelectItem></SelectContent></Select></Field>
+        <Field><FieldLabel htmlFor="title">标题</FieldLabel><Input defaultValue={initialValues?.title ?? ""} id="title" name="title" required /></Field>
+        <Field><FieldLabel htmlFor="slug">系统网址标识</FieldLabel><FieldDescription>由系统自动生成，创建后保持不变。</FieldDescription><Input className="font-mono text-xs" defaultValue={initialValues?.slug ?? "创建后生成"} disabled={mode === "create" || !initialValues?.slug} id="slug" name={mode === "edit" ? undefined : "slug"} readOnly={mode === "create"} /><input name={mode === "edit" ? "slug" : undefined} type="hidden" value={initialValues?.slug ?? ""} /></Field>
+        <Field><FieldLabel htmlFor="excerpt">摘要</FieldLabel><Textarea defaultValue={initialValues?.excerpt ?? ""} id="excerpt" name="excerpt" /></Field>
+      </FieldGroup>
+      {kind === "story" ? <Field><FieldLabel>正文（Markdown）</FieldLabel><StoryMarkdownEditor defaultValue={initialValues?.markdownBody ?? ""} /></Field> : null}
+      {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "选择后可点击预览并查看大图。" : "选择后可直接预览视频首帧和控制条。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => setMediaFile(null)} onError={setUploadError} /></Field> : null}
+      {kind === "photo" ? <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2"><label htmlFor="aperture">光圈（f 值）</label><Input id="aperture" name="aperture" onChange={(event) => updatePhotoValue("aperture", event.target.value)} placeholder="例如 2.8" type="number" step="0.1" value={photoValues.aperture ?? ""} /></div>
+        <div className="grid gap-2"><label htmlFor="shutterSpeed">快门速度</label><Input id="shutterSpeed" name="shutterSpeed" onChange={(event) => updatePhotoValue("shutterSpeed", event.target.value)} placeholder="例如 1/250" value={photoValues.shutterSpeed ?? ""} /></div>
+        <div className="grid gap-2"><label htmlFor="iso">ISO</label><Input id="iso" name="iso" onChange={(event) => updatePhotoValue("iso", event.target.value)} placeholder="例如 400" type="number" value={photoValues.iso ?? ""} /></div>
+        <div className="grid gap-2"><label htmlFor="focalLengthMm">焦距（毫米）</label><Input id="focalLengthMm" name="focalLengthMm" onChange={(event) => updatePhotoValue("focalLengthMm", event.target.value)} placeholder="例如 35" type="number" step="0.1" value={photoValues.focalLengthMm ?? ""} /></div>
+        <div className="grid gap-2"><label htmlFor="cameraMake">相机品牌</label><Input id="cameraMake" name="cameraMake" onChange={(event) => updatePhotoValue("cameraMake", event.target.value)} placeholder="例如 Canon" value={photoValues.cameraMake ?? ""} /></div>
+        <div className="grid gap-2"><label htmlFor="cameraModel">相机型号</label><Input id="cameraModel" name="cameraModel" onChange={(event) => updatePhotoValue("cameraModel", event.target.value)} placeholder="例如 EOS R5" value={photoValues.cameraModel ?? ""} /></div>
+        <div className="grid gap-2 sm:col-span-2"><label htmlFor="lens">镜头</label><Input id="lens" name="lens" onChange={(event) => updatePhotoValue("lens", event.target.value)} placeholder="例如 RF 35mm F1.8" value={photoValues.lens ?? ""} /></div>
       </div> : null}
-      {kind === "photo" ? <div className="grid gap-2"><label htmlFor="capturedAt">Captured at (ISO 8601)</label><Input id="capturedAt" name="capturedAt" onChange={(event) => updatePhotoValue("capturedAt", event.target.value)} placeholder="e.g. 2026-08-20T08:30:00Z" type="text" value={photoValues.capturedAt ?? ""} /></div> : null}
-      <div className="grid gap-3 border-t pt-5">
-        <label htmlFor="locationVisibility">Location visibility</label>
-        <select className="h-9 rounded-md border bg-background px-3 text-sm" id="locationVisibility" name="locationVisibility" onChange={(event) => setLocationVisibility(event.target.value as NonNullable<ContentFormInitialValues["locationVisibility"]>)} value={locationVisibility}>
-          <option value="hidden">Hidden</option>
-          <option value="city">City / region only</option>
-          <option value="precise">Precise location</option>
-        </select>
-        {locationVisibility !== "hidden" ? <div className="grid grid-cols-2 gap-4">
-          <div className="grid gap-2"><label htmlFor="city">City</label><Input defaultValue={initialValues?.city ?? ""} id="city" name="city" placeholder="City" required /></div>
-          <div className="grid gap-2"><label htmlFor="region">Region</label><Input defaultValue={initialValues?.region ?? ""} id="region" name="region" placeholder="Region" required /></div>
+      {kind === "photo" ? <div className="grid gap-2"><label htmlFor="capturedAt">拍摄时间（ISO 8601）</label><Input id="capturedAt" name="capturedAt" onChange={(event) => updatePhotoValue("capturedAt", event.target.value)} placeholder="例如 2026-08-20T08:30:00Z" type="text" value={photoValues.capturedAt ?? ""} /></div> : null}
+      <div className="grid gap-4 border-t pt-5">
+        <Field><FieldLabel htmlFor="locationVisibility">地点公开范围</FieldLabel><Select name="locationVisibility" value={locationVisibility} onValueChange={(value) => setLocationVisibility(value as NonNullable<ContentFormInitialValues["locationVisibility"]>)}><SelectTrigger id="locationVisibility"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="hidden">不公开</SelectItem><SelectItem value="city">仅城市和地区</SelectItem><SelectItem value="precise">公开精确地点</SelectItem></SelectContent></Select></Field>
+        {locationVisibility !== "hidden" ? <Button className="w-fit" type="button" variant="outline" onClick={() => void useCurrentLocation()}>一键获取地理位置</Button> : null}
+        {locationVisibility !== "hidden" ? <div className="grid gap-4 sm:grid-cols-2">
+          <Field><FieldLabel htmlFor="city">城市</FieldLabel><Input value={locationValues.city} onChange={(event) => setLocationValues((current) => ({ ...current, city: event.target.value }))} id="city" name="city" placeholder="填写城市" required /></Field>
+          <Field><FieldLabel htmlFor="region">地区</FieldLabel><Input value={locationValues.region} onChange={(event) => setLocationValues((current) => ({ ...current, region: event.target.value }))} id="region" name="region" placeholder="填写地区" required /></Field>
           {locationVisibility === "precise" ? <>
-            <div className="col-span-2 grid gap-2"><label htmlFor="locationLabel">Location label</label><Input defaultValue={initialValues?.locationLabel ?? ""} id="locationLabel" name="locationLabel" placeholder="Location label" required /></div>
-            <div className="grid gap-2"><label htmlFor="latitude">Latitude</label><Input id="latitude" name="latitude" onChange={(event) => updatePhotoValue("latitude", event.target.value)} placeholder="e.g. 30.123456" type="number" step="0.000001" required value={photoValues.latitude ?? String(initialValues?.latitude ?? "")} /></div>
-            <div className="grid gap-2"><label htmlFor="longitude">Longitude</label><Input id="longitude" name="longitude" onChange={(event) => updatePhotoValue("longitude", event.target.value)} placeholder="e.g. 104.123456" type="number" step="0.000001" required value={photoValues.longitude ?? String(initialValues?.longitude ?? "")} /></div>
+            <Field className="sm:col-span-2"><FieldLabel htmlFor="locationLabel">地点名称</FieldLabel><Input value={locationValues.label} onChange={(event) => setLocationValues((current) => ({ ...current, label: event.target.value }))} id="locationLabel" name="locationLabel" placeholder="填写地点名称" required /></Field>
+            <div className="grid gap-2"><label htmlFor="latitude">纬度</label><Input id="latitude" name="latitude" onChange={(event) => updatePhotoValue("latitude", event.target.value)} placeholder="例如 30.123456" type="number" step="0.000001" required value={photoValues.latitude ?? String(initialValues?.latitude ?? "")} /></div>
+            <div className="grid gap-2"><label htmlFor="longitude">经度</label><Input id="longitude" name="longitude" onChange={(event) => updatePhotoValue("longitude", event.target.value)} placeholder="例如 104.123456" type="number" step="0.000001" required value={photoValues.longitude ?? String(initialValues?.longitude ?? "")} /></div>
           </> : null}
         </div> : null}
+        {locationStatus ? <Alert><AlertDescription>{locationStatus}</AlertDescription></Alert> : null}
       </div>
       <input name="objectKey" type="hidden" value={initialValues?.objectKey ?? initialValues?.photo?.objectKey ?? ""} />
-      <label className="flex items-center gap-2 text-sm"><input defaultChecked={Boolean(initialValues?.publishedAt)} name="publishNow" type="checkbox" /> Publish now</label>
-      <label className="flex items-center gap-2 text-sm"><input defaultChecked={Boolean(initialValues?.isFeatured)} name="isFeatured" type="checkbox" /> Feature on the home contact sheet</label>
+      <div className="grid gap-3 sm:grid-cols-2"><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="publishNow">立即发布</FieldLabel><Switch defaultChecked={Boolean(initialValues?.publishedAt)} id="publishNow" name="publishNow" /></Field><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="isFeatured">在首页精选展示</FieldLabel><Switch defaultChecked={Boolean(initialValues?.isFeatured)} id="isFeatured" name="isFeatured" /></Field></div>
       {state.error ? <p className="text-sm text-destructive" role="alert">{state.error}</p> : null}
       {uploadError ? <p className="text-sm text-destructive" role="alert">{uploadError}</p> : null}
       {exifError ? <p className="text-sm text-destructive" role="alert">{exifError}</p> : null}
       {exifStatus ? <p aria-live="polite" className="text-sm text-muted-foreground">{exifStatus}</p> : null}
-      {state.warning ? <p aria-live="polite" className="text-sm text-amber-700 dark:text-amber-300">{state.warning}</p> : null}
-      {state.success ? <p aria-live="polite" className="text-sm">{state.success}{state.publicPath ? <> {" "}<Link className="underline underline-offset-4" href={state.publicPath}>Open public page</Link></> : null}</p> : null}
-      <Button disabled={isPending || isUploading || isSubmitting} type="submit">{isUploading ? "Uploading" : isPending || isSubmitting ? isEdit ? "Updating" : "Creating" : isEdit ? "Save changes" : "Create content"}</Button>
+      {state.warning ? <p aria-live="polite" className="text-sm text-muted-foreground">{state.warning}</p> : null}
+      {state.success ? <p aria-live="polite" className="text-sm">{state.success}{state.publicPath ? <> {" "}<Link className="underline underline-offset-4" href={state.publicPath}>查看公开页面</Link></> : null}</p> : null}
+      <Button disabled={isPending || isUploading || isSubmitting} type="submit">{isUploading ? "正在上传" : isPending || isSubmitting ? isEdit ? "正在更新" : "正在创建" : isEdit ? "保存修改" : "创建内容"}</Button>
     </form>
   );
 }

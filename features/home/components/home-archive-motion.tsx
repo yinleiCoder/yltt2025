@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 export function HomeArchiveMotion() {
   useLayoutEffect(() => {
     const scope = document.getElementById("home-archive");
-    if (!scope || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!scope) {
       return;
     }
 
@@ -19,6 +19,7 @@ export function HomeArchiveMotion() {
       const titleSplit = title
         ? SplitText.create(title, { aria: "auto", mask: "lines", type: "lines" })
         : null;
+      const heroIndexItems = scope.querySelectorAll<HTMLElement>("[data-home-hero-index] > *");
 
       const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
 
@@ -31,17 +32,19 @@ export function HomeArchiveMotion() {
         });
       }
 
-      intro
-        .from(
-          "[data-home-hero-media]",
-          { autoAlpha: 0, duration: 0.9, scale: 1.035 },
-          "<0.12",
-        )
-        .from(
-          "[data-home-hero-index] > *",
+      intro.from(
+        "[data-home-hero-media]",
+        { autoAlpha: 0, duration: 0.9, scale: 1.035 },
+        "<0.12",
+      );
+
+      if (heroIndexItems.length) {
+        intro.from(
+          heroIndexItems,
           { autoAlpha: 0, duration: 0.45, stagger: 0.07, y: 12 },
           "<0.22",
         );
+      }
 
       const archiveCards = gsap.utils.toArray<HTMLElement>("[data-archive-card]");
       if (archiveCards.length) {

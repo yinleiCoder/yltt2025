@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -9,6 +8,7 @@ import {
   type AuthActionState,
 } from "@/features/auth/domain/auth-feedback";
 import { resolveAuthRedirectPath } from "@/features/auth/domain/redirect-path";
+import { getTrustedAppOrigin } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function signInAction(
@@ -46,12 +46,11 @@ export async function signUpAction(
   );
   if ("error" in credentials) return credentials;
 
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin") ?? "http://localhost:3000";
   const next = resolveAuthRedirectPath(String(formData.get("next") ?? "/"));
   let authError: unknown;
 
   try {
+    const origin = getTrustedAppOrigin();
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.signUp({
       ...credentials.value,
@@ -83,13 +82,12 @@ export async function signInWithGitHubAction(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin") ?? "http://localhost:3000";
   const next = resolveAuthRedirectPath(String(formData.get("next") ?? "/"));
   let providerUrl: string | null = null;
   let authError: unknown;
 
   try {
+    const origin = getTrustedAppOrigin();
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "github",

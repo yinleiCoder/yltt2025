@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">YlTt2025 兔子标记</title>
+  <path d="M25.6 28.8 21.76 8.96M38.4 28.8l3.84-19.84" fill="none" stroke="#111111" stroke-linecap="round" stroke-width="7.8" />
+  <path d="M25.6 28.8 21.76 8.96M38.4 28.8l3.84-19.84" fill="none" stroke="#F7F7F7" stroke-linecap="round" stroke-width="6.08" />
+  <ellipse cx="32" cy="38.4" rx="18.4" ry="17.1" fill="#111111" />
+  <ellipse cx="32" cy="38.4" rx="17.28" ry="16" fill="#F7F7F7" />
+  <path d="M25.6 24.96 22.4 12.16M38.4 24.96l3.2-12.8" fill="none" stroke="#111111" stroke-linecap="round" stroke-width="2.24" />
+  <circle cx="26.88" cy="37.76" r="1.792" fill="#111111" />
+  <circle cx="37.12" cy="37.76" r="1.792" fill="#111111" />
+  <path d="m29.6 42.24 2.4-1.44 2.4 1.44L32 44.64Z" fill="#111111" />
+</svg>

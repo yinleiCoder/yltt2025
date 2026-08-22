@@ -90,9 +90,13 @@ Cloudflare 只代理公开媒体的 `GET`/`HEAD` 读取。签名上传使用服�
 在 Vercel 项目的 Production 环境设置：
 
 ```text
+SITE_URL=https://<app-hostname>
 MEDIA_CDN_BASE_URL=https://<media-hostname>
 OSS_PUBLIC_BASE_URL=https://<oss-origin-domain>
 ```
+
+`SITE_URL` 必须与 Supabase Auth 中允许的生产回调源一致。GitHub OAuth 和邮箱确认都会使用
+`https://<app-hostname>/auth/callback`，不要填写媒体域名或带路径的 URL。
 
 `MEDIA_CDN_BASE_URL` 会优先于 `OSS_PUBLIC_BASE_URL`，因此确认 CDN 媒体域名可访问后再保存并重新部署。保留 `OSS_PUBLIC_BASE_URL` 作为回退地址，但不要把真实值写入 Git。
 

@@ -1,43 +1,29 @@
-import { LogIn, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 import { getCurrentProfile } from "@/features/auth/server/auth-service";
-import { signOutAction } from "@/features/auth/server/actions";
+import { ProfileMenu } from "@/features/auth/components/profile-menu";
+import { cn } from "@/lib/utils";
 
-const controlClassName =
-  "inline-flex h-7 items-center justify-center gap-1 border border-[#3b3b3b] px-2.5 text-[0.8rem] font-medium text-[#f7f7f7] transition-colors hover:border-white";
+const controlClassName = "inline-flex h-7 items-center justify-center gap-1 border px-2.5 text-[0.8rem] font-medium transition-colors";
 
-export async function PublicAuthControls() {
+export async function PublicAuthControls({ surface = "light" }: { surface?: "dark" | "light" } = {}) {
   const profile = await getCurrentProfile();
 
   if (!profile) {
     return (
-      <Link className={controlClassName} href="/login">
-        <LogIn aria-hidden="true" />
-        登录
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link className={cn(controlClassName, surface === "dark" ? "border-background/25 text-background hover:border-background" : "border-border text-foreground hover:border-foreground")} href="/login">
+          <LogIn size={18} aria-hidden="true" data-icon="inline-start" />
+          登录
+        </Link>
+        <Link className={cn(controlClassName, surface === "dark" ? "border-background/25 text-background hover:border-background" : "border-border text-foreground hover:border-foreground")} href="/register">
+          <UserPlus size={18} aria-hidden="true" data-icon="inline-start" />
+          注册
+        </Link>
+      </div>
     );
   }
 
-  return (
-    <div className="flex items-center gap-2">
-      {profile.role === "admin" ? (
-        <Link className={controlClassName} href="/admin">
-          <ShieldCheck aria-hidden="true" />
-          后台
-        </Link>
-      ) : (
-        <span className="inline-flex h-7 items-center gap-1 px-1 text-[0.8rem] text-[#b8b8b8]">
-          <UserRound aria-hidden="true" />
-          已登录
-        </span>
-      )}
-      <form action={signOutAction}>
-        <button className={controlClassName} type="submit">
-          <LogOut aria-hidden="true" />
-          退出
-        </button>
-      </form>
-    </div>
-  );
+  return <ProfileMenu profile={profile} surface={surface} />;
 }

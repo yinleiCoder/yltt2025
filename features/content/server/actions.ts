@@ -36,21 +36,19 @@ export async function createContentAction(
 ): Promise<CreateContentState> {
   try {
     const draft = parseAdminContentDraft(readDraftFormData(formData));
-    await createAdminContentItem(draft);
-    revalidateContentPaths(draft.kind, draft.slug);
+    const created = await createAdminContentItem(draft);
+    revalidateContentPaths(draft.kind, created.slug);
 
     return {
-      success: draft.publishNow ? "Content item created and published." : "Content item saved as a draft.",
-      publicPath: draft.publishNow ? publicPathFor(draft.kind, draft.slug) : undefined,
+      success: draft.publishNow ? "内容已创建并发布。" : "内容已保存为草稿。",
+      publicPath: draft.publishNow ? publicPathFor(draft.kind, created.slug) : undefined,
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { error: error.issues[0]?.message ?? "Check the content fields." };
+      return { error: "请检查内容填写是否完整、格式是否正确。" };
     }
 
-    return {
-      error: error instanceof Error ? error.message : "Could not create content.",
-    };
+    return { error: "创建内容失败，请稍后重试。" };
   }
 }
 
@@ -62,21 +60,19 @@ export async function updateContentAction(
     const id = String(formData.get("id") ?? "");
     const draft = parseAdminContentDraft(readDraftFormData(formData));
     const result = await updateAdminContentItem(id, draft);
-    revalidateContentPaths(draft.kind, draft.slug, result.previousSlug);
+    revalidateContentPaths(draft.kind, result.slug, result.previousSlug);
 
     return {
-      success: draft.publishNow ? "Content item updated and published." : "Content item updated as a draft.",
-      warning: result.cleanupWarning,
-      publicPath: draft.publishNow ? publicPathFor(draft.kind, draft.slug) : undefined,
+      success: draft.publishNow ? "内容已更新并发布。" : "内容已保存为草稿。",
+      warning: result.cleanupWarning ? "内容已保存，但原媒体文件清理失败。" : undefined,
+      publicPath: draft.publishNow ? publicPathFor(draft.kind, result.slug) : undefined,
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { error: error.issues[0]?.message ?? "Check the content fields." };
+      return { error: "请检查内容填写是否完整、格式是否正确。" };
     }
 
-    return {
-      error: error instanceof Error ? error.message : "Could not update content.",
-    };
+    return { error: "保存内容失败，请稍后重试。" };
   }
 }
 

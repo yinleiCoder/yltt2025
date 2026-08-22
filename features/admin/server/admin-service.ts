@@ -5,6 +5,7 @@ export type AdminDashboardData = {
   contentCount: number;
   commentCount: number;
   userCount: number;
+  userAvatars: Array<{ avatarUrl: string | null; displayName: string | null }>;
   recentContent: Array<{
     id: string;
     title: string;
@@ -28,6 +29,13 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         .order("updated_at", { ascending: false })
         .limit(8),
     ]);
+  const recentUsersResult = await (async () => {
+    try {
+      return await supabase.from("profiles").select("avatar_url, display_name").order("created_at", { ascending: false }).limit(8);
+    } catch {
+      return { data: [], error: null };
+    }
+  })();
 
   const failedResult = [
     contentResult,
@@ -37,13 +45,14 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   ].find((result) => result.error);
 
   if (failedResult?.error) {
-    throw new Error(`Could not load the admin dashboard: ${failedResult.error.message}`);
+    throw new Error(`无法加载后台概览：${failedResult.error.message}`);
   }
 
   return {
     contentCount: contentResult.count ?? 0,
     commentCount: commentResult.count ?? 0,
     userCount: profileResult.count ?? 0,
+    userAvatars: (recentUsersResult.data ?? []).map((user) => ({ avatarUrl: user.avatar_url as string | null, displayName: user.display_name as string | null })),
     recentContent: (recentContentResult.data ?? []).map((item) => ({
       id: item.id as string,
       title: item.title as string,

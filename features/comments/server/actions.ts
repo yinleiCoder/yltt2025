@@ -1,13 +1,23 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireCurrentProfile } from "@/features/auth/server/auth-service";
 import { parseCommentBody, parseCommentDraft } from "@/features/comments/domain/comment-draft";
+import { revalidateCommentPages } from "@/features/comments/server/revalidate-comment-pages";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const commentIdSchema = z.string().uuid();
+
+const commentActionMessages = {
+  publishFailed: "发表评论失败，请稍后重试。",
+  updateFailed: "编辑评论失败，请稍后重试。",
+  deleteFailed: "删除评论失败，请稍后重试。",
+  unavailable: "未找到评论或无权操作。",
+  published: "评论已发布。",
+  updated: "评论已更新。",
+  deleted: "评论已删除。",
+} as const;
 
 export type CommentMutationState = {
   error?: string;
@@ -34,15 +44,12 @@ export async function addCommentAction(
 
     if (error) throw new Error(error.message);
 
-    revalidatePath("/photography/[slug]", "page");
-    revalidatePath("/videos/[slug]", "page");
-    revalidatePath("/stories/[slug]", "page");
-    return { success: "Comment published." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not publish comment." };
+    revalidateCommentPages();
+    return { success: commentActionMessages.published };
+  } catch {
+    return { error: commentActionMessages.publishFailed };
   }
 }
-
 export async function updateCommentAction(formData: FormData): Promise<CommentMutationState> {
   try {
     const profile = await requireCurrentProfile();
@@ -57,11 +64,11 @@ export async function updateCommentAction(formData: FormData): Promise<CommentMu
       .select("id")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!data) return { error: "Comment was not found or does not belong to you." };
+    if (!data) return { error: commentActionMessages.unavailable };
     revalidateCommentPages();
-    return { success: "Comment updated." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not update comment." };
+    return { success: commentActionMessages.updated };
+  } catch {
+    return { error: commentActionMessages.updateFailed };
   }
 }
 
@@ -78,16 +85,10 @@ export async function deleteCommentAction(formData: FormData): Promise<CommentMu
       .select("id")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!data) return { error: "Comment was not found or does not belong to you." };
+    if (!data) return { error: commentActionMessages.unavailable };
     revalidateCommentPages();
-    return { success: "Comment deleted." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not delete comment." };
+    return { success: commentActionMessages.deleted };
+  } catch {
+    return { error: commentActionMessages.deleteFailed };
   }
-}
-
-function revalidateCommentPages() {
-  revalidatePath("/photography/[slug]", "page");
-  revalidatePath("/videos/[slug]", "page");
-  revalidatePath("/stories/[slug]", "page");
 }

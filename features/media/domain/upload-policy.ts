@@ -13,9 +13,19 @@ type MediaObjectKeyInput = {
   token: string;
 };
 
+type AvatarObjectKeyInput = {
+  profileId: string;
+  originalName: string;
+  mimeType: string;
+  timestamp: Date;
+  token: string;
+};
+
 const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const objectKeySegmentPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export class UploadPolicyError extends Error {
   constructor(message: string) {
@@ -30,7 +40,7 @@ export function validateMediaUpload(upload: MediaUpload): {
 } {
   if (PHOTO_MIME_TYPES.has(upload.mimeType)) {
     if (upload.size > MAX_PHOTO_BYTES) {
-      throw new UploadPolicyError("Photos must not exceed 25 MB.");
+      throw new UploadPolicyError("照片文件不能超过 25 MB。");
     }
 
     return { kind: "photo", mimeType: upload.mimeType };
@@ -38,15 +48,34 @@ export function validateMediaUpload(upload: MediaUpload): {
 
   if (upload.mimeType === "video/mp4") {
     if (upload.size > MAX_VIDEO_BYTES) {
-      throw new UploadPolicyError("Videos must not exceed 500 MB.");
+      throw new UploadPolicyError("视频文件不能超过 500 MB。");
     }
 
     return { kind: "video", mimeType: upload.mimeType };
   }
 
   throw new UploadPolicyError(
-    "Only JPEG, PNG, WebP, and H.264/AAC MP4 files are accepted.",
+    "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
   );
+}
+
+export class AvatarObjectKeyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AvatarObjectKeyError";
+  }
+}
+
+export function validateAvatarUpload(upload: MediaUpload): { mimeType: string } {
+  if (!PHOTO_MIME_TYPES.has(upload.mimeType)) {
+    throw new UploadPolicyError("头像仅支持 JPEG、PNG 或 WebP 图片。");
+  }
+
+  if (upload.size > MAX_AVATAR_BYTES) {
+    throw new UploadPolicyError("头像文件不能超过 5 MB。");
+  }
+
+  return { mimeType: upload.mimeType };
 }
 
 export function createMediaObjectKey(input: MediaObjectKeyInput): string {
@@ -57,6 +86,42 @@ export function createMediaObjectKey(input: MediaObjectKeyInput): string {
   const directory = input.kind === "photo" ? "photos" : "videos";
 
   return `${directory}/${year}/${month}/${input.token}-${filename}.${extension}`;
+}
+
+export function createAvatarObjectKey(input: AvatarObjectKeyInput): string {
+  const year = input.timestamp.getUTCFullYear();
+  const month = String(input.timestamp.getUTCMonth() + 1).padStart(2, "0");
+  const extension = avatarExtensionFor(input.mimeType);
+
+  return `avatars/${input.profileId}/${year}/${month}/${input.token}-${fileStem(input.originalName)}.${extension}`;
+}
+
+export function parseOwnedAvatarObjectKey(objectKey: unknown, profileId: string): string {
+  if (typeof objectKey !== "string" || !objectKey.startsWith("avatars/")) {
+    throw new AvatarObjectKeyError("头像对象键格式无效。");
+  }
+
+  const prefix = `avatars/${profileId}/`;
+  if (!objectKey.startsWith(prefix)) {
+    throw new AvatarObjectKeyError("头像对象不属于当前用户。");
+  }
+
+  const segments = objectKey.split("/");
+  const [namespace, ownerId, year, month, filename] = segments;
+  if (
+    segments.length !== 5 ||
+    namespace !== "avatars" ||
+    ownerId !== profileId ||
+    !objectKeySegmentPattern.test(profileId) ||
+    !/^\d{4}$/.test(year) ||
+    !/^(0[1-9]|1[0-2])$/.test(month) ||
+    !objectKeySegmentPattern.test(filename) ||
+    !/\.(jpg|png|webp)$/i.test(filename)
+  ) {
+    throw new AvatarObjectKeyError("头像对象键格式无效。");
+  }
+
+  return objectKey;
 }
 
 function fileStem(originalName: string): string {
@@ -80,4 +145,17 @@ function extensionFor(originalName: string, kind: MediaKind): string {
   }
 
   return kind === "photo" ? "jpg" : "mp4";
+}
+
+function avatarExtensionFor(mimeType: string): "jpg" | "png" | "webp" {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    default:
+      throw new UploadPolicyError("头像仅支持 JPEG、PNG 或 WebP 图片。");
+  }
 }

@@ -20,6 +20,7 @@ npm run dev
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key |
+| `SITE_URL` | 应用的规范 HTTP(S) 源地址，用于 GitHub OAuth 和邮箱确认回调；生产环境必须使用 HTTPS |
 | `OSS_REGION` | OSS 区域，例如 `oss-cn-hangzhou` |
 | `OSS_BUCKET` | 媒体 Bucket 名称 |
 | `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` | 服务端签名上传凭据 |
@@ -37,7 +38,10 @@ npm run dev
 20260820101350_initial_content_platform.sql
 20260820192847_restrict_admin_role_rpc.sql
 20260820231103_grant_rls_helper_execution.sql
+20260821034638_tighten_public_grants.sql
 20260821100000_fix_admin_role_rpc_current_role.sql
+20260821120000_add_profile_details_and_public_projection.sql
+20260822100000_add_profile_email_visibility.sql
 ```
 
 首个管理员邮箱需要先加入 `admin_email_allowlist`，再注册并完成邮箱确认。管理员角色只能通过 `admin_change_user_role` RPC 调整，不能自我提权，也不能移除最后一位管理员。
@@ -45,7 +49,7 @@ npm run dev
 ## OSS
 
 - Bucket 设为“公共读、私有写”，应用只保存 `objectKey`，上传通过服务端签名 URL 完成。
-- CORS 允许开发域名 `http://localhost:3000` 的 `PUT`、`GET`、`HEAD`，允许请求头 `Content-Type`，暴露 `ETag`。
+- CORS 允许开发域名 `http://localhost:3000` 的 `PUT`、`POST`、`GET`、`HEAD`，允许请求头 `Content-Type`，暴露 `ETag`。
 - 公开读取域名填写 `OSS_PUBLIC_BASE_URL`；接入 Cloudflare 后只需切换 `MEDIA_CDN_BASE_URL`。
 - 照片首页通过 OSS 图片处理输出 WebP/缩放 URL；视频只接受 H.264/AAC MP4。MOV、HEVC、ProRes 需先转码。
 
@@ -81,7 +85,7 @@ git diff --check
 ## 交付前检查
 
 1. 在 Supabase Auth 中启用邮箱确认和泄露密码保护，配置 `http://localhost:3000/auth/callback` 及生产回调地址。
-2. 在 OSS 控制台设置 Bucket 为公共读、私有写，并将 `http://localhost:3000` 配置为允许 `PUT`、`GET`、`HEAD` 的 CORS 来源。
+2. 在 OSS 控制台设置 Bucket 为公共读、私有写，并将 `http://localhost:3000` 配置为允许 `PUT`、`POST`、`GET`、`HEAD` 的 CORS 来源。
 3. 用管理员账号创建一条草稿，验证编辑、发布、撤回、精选切换和删除；不要直接使用唯一管理员或唯一生产媒体做破坏性测试。
 4. 用普通账号和访客分别验证评论归属、隐藏评论和 `/admin` 路由保护。
 5. 部署前复核 Supabase advisor：管理员角色 RPC 的 `SECURITY DEFINER` 是有意的受控入口，`admin_email_allowlist` 只应由受信任服务端维护。

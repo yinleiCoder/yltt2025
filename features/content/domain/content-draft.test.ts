@@ -76,4 +76,21 @@ describe("parseAdminContentDraft", () => {
       }),
     ).toMatchObject({ locationVisibility: "city", city: "Kyoto", region: "Kyoto Prefecture" });
   });
+
+  it("accepts camera metadata without imposing business ranges", () => {
+    expect(
+      parseAdminContentDraft({
+        kind: "photo",
+        title: "Metadata from an unusual camera",
+        slug: "unusual-camera",
+        isFeatured: false,
+        publishNow: false,
+        objectKey: "photos/2026/08/photo.jpg",
+        aperture: 0,
+        iso: 0,
+        focalLengthMm: -1,
+        shutterSpeed: "bulb",
+      }),
+    ).toMatchObject({ aperture: 0, iso: 0, focalLengthMm: -1, shutterSpeed: "bulb" });
+  });
 });

@@ -21,6 +21,18 @@ begin
     raise exception 'Administrators cannot change their own role';
   end if;
 
+  -- Serialize every role change so two concurrent administrator demotions
+  -- cannot each observe the same pre-change administrator count.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('public.admin_change_user_role')
+  );
+
+  -- The caller might have waited while another administrator changed roles.
+  -- Recheck before this SECURITY DEFINER function reads or writes profiles.
+  if current_actor_id is null or not (select private.is_admin()) then
+    raise exception 'Administrator access is required';
+  end if;
+
   select role into existing_role
   from public.profiles
   where id = target_profile_id

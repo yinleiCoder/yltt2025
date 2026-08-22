@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 
 import { AuthHashErrorRedirect } from "@/features/auth/components/auth-hash-error-redirect";
 
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
@@ -17,19 +20,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "YlTt2025",
-    template: "%s | YlTt2025",
+    default: "YlTt's 2025",
+    template: "%s | YlTt's 2025",
   },
-  description: "YlTt2025 的摄影、短片与恋爱故事档案。",
+  description: "YlTt's 2025 的摄影、短片与恋爱故事档案。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", geist.variable, geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col overflow-x-clip selection:bg-fuchsia-300 selection:text-fuchsia-900">
         <AuthHashErrorRedirect />
         {children}
       </body>

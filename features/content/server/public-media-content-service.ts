@@ -7,7 +7,7 @@ import {
   type PublicVideoRow,
 } from "@/features/content/domain/public-media-content";
 import { firstRelatedRecord, type RelatedRecord } from "@/features/content/domain/related-record";
-import { createPublicMediaUrl } from "@/features/media/domain/public-media-url";
+import { createPublicMediaUrl, createVideoPosterUrl } from "@/features/media/domain/public-media-url";
 import { getPublicMediaBaseUrl, hasPublicSupabaseEnvironment } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -160,8 +160,10 @@ function toVideoItems(records: VideoRecord[] | null, mediaBaseUrl: string | null
     return [{
       ...toPublicVideo(row),
       videoUrl: mediaBaseUrl ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: details.object_key }) : null,
-      posterUrl: mediaBaseUrl && details.poster_object_key
-        ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: details.poster_object_key, imageWidth: 1600 })
+      posterUrl: mediaBaseUrl
+        ? details.poster_object_key
+          ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: details.poster_object_key, imageWidth: 1600 })
+          : createVideoPosterUrl({ baseUrl: mediaBaseUrl, objectKey: details.object_key })
         : null,
     }];
   });

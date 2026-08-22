@@ -20,6 +20,35 @@ const publicMediaEnvironmentSchema = z.object({
   MEDIA_CDN_BASE_URL: z.url().optional(),
 });
 
+const siteUrlSchema = z.object({
+  SITE_URL: z.url(),
+});
+
+export function getTrustedAppOrigin(): string {
+  const siteUrl = process.env.SITE_URL;
+
+  if (!siteUrl) {
+    if (process.env.NODE_ENV !== "production") {
+      return "http://localhost:3000";
+    }
+
+    throw new Error("生产环境必须配置 SITE_URL。");
+  }
+
+  const environment = siteUrlSchema.parse({ SITE_URL: siteUrl });
+  const url = new URL(environment.SITE_URL);
+
+  if (url.protocol !== "https:" && process.env.NODE_ENV === "production") {
+    throw new Error("生产环境的 SITE_URL 必须使用 HTTPS 协议。");
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("SITE_URL 必须使用 HTTP 或 HTTPS 协议。");
+  }
+
+  return url.origin;
+}
+
 export function getPublicEnvironment() {
   return publicEnvironmentSchema.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

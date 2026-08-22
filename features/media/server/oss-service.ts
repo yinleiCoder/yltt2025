@@ -1,9 +1,13 @@
+import "server-only";
+
 import OSS from "ali-oss";
 import { randomUUID } from "crypto";
 
 import {
+  createAvatarObjectKey,
   createMediaObjectKey,
   type MediaKind,
+  validateAvatarUpload,
   validateMediaUpload,
 } from "@/features/media/domain/upload-policy";
 import { getOssEnvironment } from "@/lib/env";
@@ -19,6 +23,23 @@ export type UploadSignature = {
   objectKey: string;
   uploadUrl: string;
   expiresAt: string;
+};
+
+export type AvatarUploadSignature = Omit<UploadSignature, "kind"> & {
+  fields: Record<string, string>;
+};
+
+type AvatarUploadSignatureInput = UploadSignatureInput & {
+  profileId: string;
+};
+
+type OssPostPolicyClient = {
+  calculatePostSignature(policy: object): {
+    OSSAccessKeyId: string;
+    Signature: string;
+    policy: string;
+  };
+  generateObjectUrl(name: string): string;
 };
 
 export function issueOssUploadSignature(input: UploadSignatureInput): UploadSignature {
@@ -48,6 +69,53 @@ export function issueOssUploadSignature(input: UploadSignatureInput): UploadSign
       "Content-Type": upload.mimeType,
     }),
     expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+  };
+}
+
+export function issueAvatarUploadSignature(input: AvatarUploadSignatureInput): AvatarUploadSignature {
+  const upload = validateAvatarUpload(input);
+  const environment = getOssEnvironment();
+  const expiresInSeconds = 300;
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + expiresInSeconds * 1000);
+  const objectKey = createAvatarObjectKey({
+    profileId: input.profileId,
+    originalName: input.name,
+    mimeType: upload.mimeType,
+    timestamp: issuedAt,
+    token: randomUUID(),
+  });
+  const client = new OSS({
+    region: environment.OSS_REGION,
+    bucket: environment.OSS_BUCKET,
+    accessKeyId: environment.OSS_ACCESS_KEY_ID,
+    accessKeySecret: environment.OSS_ACCESS_KEY_SECRET,
+    endpoint: environment.OSS_ENDPOINT,
+  });
+  const policy = {
+    expiration: expiresAt.toISOString(),
+    conditions: [
+      { bucket: environment.OSS_BUCKET },
+      ["eq", "$key", objectKey],
+      ["eq", "$content-type", upload.mimeType],
+      ["content-length-range", 1, input.size],
+      ["eq", "$success_action_status", "201"],
+    ],
+  };
+  // ali-oss exposes these POST-policy methods at runtime but omits them from its declarations.
+  const postClient = client as unknown as OssPostPolicyClient;
+  const postSignature = postClient.calculatePostSignature(policy);
+
+  return {
+    objectKey,
+    uploadUrl: postClient.generateObjectUrl(""),
+    fields: {
+      key: objectKey,
+      "Content-Type": upload.mimeType,
+      success_action_status: "201",
+      ...postSignature,
+    },
+    expiresAt: expiresAt.toISOString(),
   };
 }
 

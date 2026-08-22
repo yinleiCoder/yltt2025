@@ -42,12 +42,13 @@ export type AdminContentItem = {
 export async function createAdminContentItem(draft: AdminContentDraft) {
   const administrator = await requireAdministrator();
   const supabase = await createServerSupabaseClient();
+  const generatedSlug = crypto.randomUUID();
   const { data: item, error: itemError } = await supabase
     .from("content_items")
     .insert({
       kind: draft.kind,
       title: draft.title,
-      slug: draft.slug,
+      slug: generatedSlug,
       excerpt: draft.excerpt || null,
       markdown_body: draft.markdownBody || null,
       cover_object_key: draft.objectKey || null,
@@ -65,16 +66,16 @@ export async function createAdminContentItem(draft: AdminContentDraft) {
     .single();
 
   if (itemError || !item) {
-    throw new Error(`Could not create content: ${itemError?.message ?? "unknown error"}`);
+    throw new Error("创建内容失败。");
   }
 
   if (draft.kind === "story") {
-    return item.id as string;
+    return { id: item.id as string, slug: generatedSlug };
   }
 
   const objectKey = draft.objectKey;
   if (!objectKey) {
-    throw new Error("Media content requires an object key.");
+    throw new Error("媒体内容缺少媒体对象标识。");
   }
 
   const detailsResult = draft.kind === "photo"
@@ -99,10 +100,10 @@ export async function createAdminContentItem(draft: AdminContentDraft) {
   if (detailsResult.error) {
     await supabase.from("content_items").delete().eq("id", item.id);
     await tryDeleteOssObject(objectKey);
-    throw new Error(`Could not create media details: ${detailsResult.error.message}`);
+    throw new Error("创建媒体详情失败。");
   }
 
-  return item.id as string;
+  return { id: item.id as string, slug: generatedSlug };
 }
 
 export async function getAdminContentItem(id: string): Promise<AdminContentItem | null> {
@@ -134,7 +135,7 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error(`Could not load content item: ${error.message}`);
+  if (error) throw new Error("加载内容失败。");
   if (!data) return null;
 
   const photo = Array.isArray(data.photo_details) ? data.photo_details[0] : data.photo_details;
@@ -177,13 +178,13 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
 
 export async function updateAdminContentItem(id: string, draft: AdminContentDraft) {
   await requireAdministrator();
-  if (!contentIdPattern.test(id)) throw new Error("Invalid content id.");
+  if (!contentIdPattern.test(id)) throw new Error("内容标识无效。");
 
   const supabase = await createServerSupabaseClient();
   const existing = await getAdminContentItem(id);
-  if (!existing) throw new Error("Content item was not found.");
+  if (!existing) throw new Error("未找到该内容。");
   if (existing.kind !== draft.kind) {
-    throw new Error("The content kind cannot be changed after creation.");
+    throw new Error("内容创建后不能更改类型。");
   }
 
   const publishedAt = draft.publishNow
@@ -195,7 +196,7 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
     .from("content_items")
     .update({
       title: draft.title,
-      slug: draft.slug,
+      slug: existing.slug,
       excerpt: draft.excerpt || null,
       markdown_body: draft.markdownBody || null,
       cover_object_key: nextObjectKey,
@@ -211,7 +212,7 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
     .eq("id", id);
 
   if (itemError) {
-    throw new Error(`Could not update content: ${itemError.message}`);
+    throw new Error("更新内容失败。");
   }
 
   if (draft.kind === "photo") {
@@ -227,7 +228,7 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
       lens: draft.lens ?? null,
       captured_at: draft.capturedAt ?? null,
     }, { onConflict: "content_id" });
-    if (error) throw new Error(`Could not update photo details: ${error.message}`);
+    if (error) throw new Error("更新摄影详情失败。");
   }
 
   if (draft.kind === "video") {
@@ -236,7 +237,7 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
       object_key: draft.objectKey,
       codec: "h264/aac",
     }, { onConflict: "content_id" });
-    if (error) throw new Error(`Could not update video details: ${error.message}`);
+    if (error) throw new Error("更新视频详情失败。");
   }
 
   const previousObjectKey = existing.photo?.objectKey ?? existing.video?.objectKey ?? existing.coverObjectKey;
@@ -244,19 +245,19 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
     ? await tryDeleteOssObject(previousObjectKey)
     : undefined;
 
-  return { cleanupWarning, previousSlug: existing.slug };
+  return { cleanupWarning, previousSlug: existing.slug, slug: existing.slug };
 }
 
 export async function deleteAdminContentItem(id: string) {
   await requireAdministrator();
-  if (!contentIdPattern.test(id)) throw new Error("Invalid content id.");
+  if (!contentIdPattern.test(id)) throw new Error("内容标识无效。");
 
   const supabase = await createServerSupabaseClient();
   const existing = await getAdminContentItem(id);
-  if (!existing) throw new Error("Content item was not found.");
+  if (!existing) throw new Error("未找到该内容。");
 
   const { error } = await supabase.from("content_items").delete().eq("id", id);
-  if (error) throw new Error(`Could not delete content: ${error.message}`);
+  if (error) throw new Error("删除内容失败。");
 
   const objectKeys = new Set(
     [existing.coverObjectKey, existing.photo?.objectKey, existing.video?.objectKey]
@@ -274,8 +275,8 @@ export async function deleteAdminContentItem(id: string) {
 async function tryDeleteOssObject(objectKey: string): Promise<string | undefined> {
   try {
     await deleteOssObject(objectKey);
-  } catch (error) {
-    return `Database saved, but OSS object cleanup failed for ${objectKey}: ${error instanceof Error ? error.message : "unknown error"}`;
+  } catch {
+    return "内容已保存，但原媒体文件清理失败。";
   }
   return undefined;
 }
