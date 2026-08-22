@@ -23,7 +23,13 @@ import {
 } from "@/features/media/domain/photo-exif-form";
 import { MediaFilePreview } from "@/features/media/components/media-file-preview";
 import { StoryMarkdownEditor } from "@/features/admin/components/story-markdown-editor";
-import { getCurrentLocation, reverseGeocode } from "@/features/media/client/location";
+import {
+  getCurrentLocation,
+  getIpLocation,
+  locationErrorMessage,
+  reverseGeocode,
+} from "@/features/media/client/location";
+import { resolveCurrentLocation } from "@/features/media/client/location-flow";
 
 export type ContentFormActionState = {
   error?: string;
@@ -81,6 +87,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   const [exifError, setExifError] = useState<string | null>(null);
   const [exifStatus, setExifStatus] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [locationValues, setLocationValues] = useState({
     label: initialValues?.locationLabel ?? "",
     city: initialValues?.city ?? "",
@@ -131,17 +138,40 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   }
 
   async function useCurrentLocation() {
+    if (isLocating) return;
+
+    setIsLocating(true);
     setLocationStatus("正在获取当前位置...");
     try {
-      const coords = await getCurrentLocation();
-      updatePhotoValue("latitude", String(coords.latitude));
-      updatePhotoValue("longitude", String(coords.longitude));
-      setLocationVisibility("precise");
-      const place = await reverseGeocode(coords.latitude, coords.longitude);
-      if (place) setLocationValues((current) => ({ label: place.label ?? current.label, city: place.city ?? current.city, region: place.region ?? current.region }));
+      const resolution = await resolveCurrentLocation({ getPrecise: getCurrentLocation, getIp: getIpLocation });
+      if (resolution.source === "precise") {
+        updatePhotoValue("latitude", String(resolution.latitude));
+        updatePhotoValue("longitude", String(resolution.longitude));
+        setLocationVisibility("precise");
+        const place = await reverseGeocode(resolution.latitude, resolution.longitude);
+        if (place) {
+          setLocationValues((current) => ({
+            label: place.label ?? current.label,
+            city: place.city ?? current.city,
+            region: place.region ?? current.region,
+          }));
+        }
       setLocationStatus(place ? "已获取当前位置并解析地点，请确认后再提交。" : "已获取坐标，但地点名称解析失败，请手动填写。");
-    } catch {
-      setLocationStatus("无法获取当前位置，请检查浏览器权限或手动填写地点。");
+      } else if (resolution.source === "ip") {
+        setLocationVisibility("city");
+        updatePhotoValue("latitude", "");
+        updatePhotoValue("longitude", "");
+        setLocationValues((current) => ({
+          ...current,
+          city: resolution.city ?? current.city,
+          region: resolution.region ?? current.region,
+        }));
+        setLocationStatus("浏览器精确定位不可用，已根据网络位置填写城市和地区，请确认后再提交。");
+      } else {
+        setLocationStatus(`${locationErrorMessage(new Error(resolution.preciseError))} 当前未能自动填充，请手动填写地点。`);
+      }
+    } finally {
+      setIsLocating(false);
     }
   }
 
@@ -200,7 +230,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       {kind === "photo" ? <div className="grid gap-2"><label htmlFor="capturedAt">拍摄时间（ISO 8601）</label><Input id="capturedAt" name="capturedAt" onChange={(event) => updatePhotoValue("capturedAt", event.target.value)} placeholder="例如 2026-08-20T08:30:00Z" type="text" value={photoValues.capturedAt ?? ""} /></div> : null}
       <div className="grid gap-4 border-t pt-5">
         <Field><FieldLabel htmlFor="locationVisibility">地点公开范围</FieldLabel><Select name="locationVisibility" value={locationVisibility} onValueChange={(value) => setLocationVisibility(value as NonNullable<ContentFormInitialValues["locationVisibility"]>)}><SelectTrigger id="locationVisibility"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="hidden">不公开</SelectItem><SelectItem value="city">仅城市和地区</SelectItem><SelectItem value="precise">公开精确地点</SelectItem></SelectContent></Select></Field>
-        {locationVisibility !== "hidden" ? <Button className="w-fit" type="button" variant="outline" onClick={() => void useCurrentLocation()}>一键获取地理位置</Button> : null}
+        {locationVisibility !== "hidden" ? <Button className="w-fit" disabled={isLocating} type="button" variant="outline" onClick={() => void useCurrentLocation()}>{isLocating ? "正在获取位置" : "一键获取地理位置"}</Button> : null}
         {locationVisibility !== "hidden" ? <div className="grid gap-4 sm:grid-cols-2">
           <Field><FieldLabel htmlFor="city">城市</FieldLabel><Input value={locationValues.city} onChange={(event) => setLocationValues((current) => ({ ...current, city: event.target.value }))} id="city" name="city" placeholder="填写城市" required /></Field>
           <Field><FieldLabel htmlFor="region">地区</FieldLabel><Input value={locationValues.region} onChange={(event) => setLocationValues((current) => ({ ...current, region: event.target.value }))} id="region" name="region" placeholder="填写地区" required /></Field>
@@ -210,7 +240,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
             <div className="grid gap-2"><label htmlFor="longitude">经度</label><Input id="longitude" name="longitude" onChange={(event) => updatePhotoValue("longitude", event.target.value)} placeholder="例如 104.123456" type="number" step="0.000001" required value={photoValues.longitude ?? String(initialValues?.longitude ?? "")} /></div>
           </> : null}
         </div> : null}
-        {locationStatus ? <Alert><AlertDescription>{locationStatus}</AlertDescription></Alert> : null}
+        {locationStatus ? <Alert aria-live="polite"><AlertDescription>{locationStatus}</AlertDescription></Alert> : null}
       </div>
       <input name="objectKey" type="hidden" value={initialValues?.objectKey ?? initialValues?.photo?.objectKey ?? ""} />
       <div className="grid gap-3 sm:grid-cols-2"><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="publishNow">立即发布</FieldLabel><Switch defaultChecked={Boolean(initialValues?.publishedAt)} id="publishNow" name="publishNow" /></Field><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="isFeatured">在首页精选展示</FieldLabel><Switch defaultChecked={Boolean(initialValues?.isFeatured)} id="isFeatured" name="isFeatured" /></Field></div>
