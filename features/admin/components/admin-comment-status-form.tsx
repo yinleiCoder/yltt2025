@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,11 @@ export function AdminCommentStatusForm({
     initialState,
   );
   const actionLabel = status === "hidden" ? "隐藏" : "恢复";
+
+  useEffect(() => {
+    if (state.success) toast.success(state.success);
+    if (state.error) toast.error(state.error);
+  }, [state.error, state.success]);
 
   return (
     <form className="flex flex-col items-end gap-1" action={formAction}>

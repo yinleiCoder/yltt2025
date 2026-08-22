@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { listPublicComments } from "@/features/comments/server/comment-service";
+import { CommentsSkeleton } from "@/components/feedback/comments-skeleton";
+import { StreamedComments } from "@/features/comments/components/streamed-comments";
 import { getPublicVideoBySlug } from "@/features/content/server/public-media-content-service";
 import { VideoDetail } from "@/features/media-content/components/video-detail";
 
@@ -17,6 +19,5 @@ export default async function VideoDetailPage({ params }: VideoPageProps) {
   const { slug } = await params;
   const video = await getPublicVideoBySlug(slug);
   if (!video) notFound();
-  const comments = await listPublicComments(video.id);
-  return <VideoDetail comments={comments} video={video} />;
+  return <VideoDetail comments={<Suspense fallback={<CommentsSkeleton />}><StreamedComments contentId={video.id} /></Suspense>} video={video} />;
 }

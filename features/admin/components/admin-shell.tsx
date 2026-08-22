@@ -1,9 +1,8 @@
-import { LogOut } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/features/auth/server/actions";
+import { AdminSignOutButton } from "@/features/admin/components/admin-sign-out-button";
 import {
   AdminDesktopNavigation,
   AdminMobileNavigation,
@@ -22,10 +21,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <AdminDesktopNavigation />
           </div>
           <form action={signOutAction} className="mt-auto">
-            <Button className="w-full justify-start" type="submit" variant="ghost">
-              <LogOut aria-hidden="true" data-icon="inline-start" />
-              退出登录
-            </Button>
+            <AdminSignOutButton />
           </form>
         </div>
       </aside>
@@ -36,10 +32,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link className="text-sm font-semibold" href="/">YlTt2025</Link>
           </div>
           <form action={signOutAction}>
-            <Button size="sm" type="submit" variant="ghost">
-              <LogOut aria-hidden="true" data-icon="inline-start" />
-              退出登录
-            </Button>
+            <AdminSignOutButton compact />
           </form>
         </header>
         {children}

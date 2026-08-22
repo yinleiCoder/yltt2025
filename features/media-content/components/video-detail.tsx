@@ -1,8 +1,7 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { PublicVideoItem } from "@/features/content/server/public-media-content-service";
-import type { PublicComment } from "@/features/comments/server/comment-service";
-import { CommentsSection } from "@/features/comments/components/comments-section";
 import { VideoPlayer } from "@/features/media/components/video-player";
 
 export function VideoDetail({
@@ -10,7 +9,7 @@ export function VideoDetail({
   comments,
 }: {
   video: PublicVideoItem;
-  comments: PublicComment[];
+  comments: ReactNode;
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
@@ -62,10 +61,7 @@ export function VideoDetail({
             </dl>
           </div>
         </div>
-        <CommentsSection
-          comments={comments}
-          contentId={video.id}
-        />
+        {comments}
       </article>
     </main>
   );

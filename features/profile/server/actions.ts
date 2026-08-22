@@ -46,11 +46,13 @@ export async function updateProfileAction(
         real_name: draft.realName,
         phone: draft.phone,
         address: draft.address,
+        birth_date: draft.birthDate,
         gender: draft.gender,
         public_gender: draft.publicGender,
         public_real_name: draft.publicRealName,
         public_phone: draft.publicPhone,
         public_address: draft.publicAddress,
+        public_birth_date: draft.publicBirthDate,
         public_email: draft.publicEmail ?? false,
         ...(avatarUrl === undefined ? {} : { avatar_url: avatarUrl }),
       })
@@ -131,11 +133,13 @@ function readProfileDraft(formData: FormData) {
     realName: formData.get("realName"),
     phone: formData.get("phone"),
     address: formData.get("address"),
+    birthDate: nullableValue(formData.get("birthDate")),
     gender: nullableValue(formData.get("gender")),
     publicGender: formData.get("publicGender") === "on",
     publicRealName: formData.get("publicRealName") === "on",
     publicPhone: formData.get("publicPhone") === "on",
     publicAddress: formData.get("publicAddress") === "on",
+    publicBirthDate: formData.get("publicBirthDate") === "on",
     publicEmail: formData.get("publicEmail") === "on",
   };
 }

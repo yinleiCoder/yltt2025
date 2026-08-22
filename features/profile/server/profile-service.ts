@@ -21,11 +21,13 @@ export type CurrentProfileDetails = {
   realName: string | null;
   phone: string | null;
   address: string | null;
+  birthDate: string | null;
   gender: ProfileGender | null;
   publicGender: boolean;
   publicRealName: boolean;
   publicPhone: boolean;
   publicAddress: boolean;
+  publicBirthDate: boolean;
   publicEmail?: boolean;
 };
 
@@ -35,7 +37,7 @@ export async function getCurrentProfileDetails(): Promise<CurrentProfileDetails>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, avatar_url, display_name, email, real_name, phone, address, gender, public_gender, public_real_name, public_phone, public_address, public_email",
+      "id, avatar_url, display_name, email, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date, public_email",
     )
     .eq("id", currentProfile.id)
     .single();
@@ -54,11 +56,13 @@ export async function getCurrentProfileDetails(): Promise<CurrentProfileDetails>
     realName: data.real_name as string | null,
     phone: data.phone as string | null,
     address: data.address as string | null,
+    birthDate: data.birth_date as string | null,
     gender: data.gender as ProfileGender | null,
     publicGender: data.public_gender as boolean,
     publicRealName: data.public_real_name as boolean,
     publicPhone: data.public_phone as boolean,
     publicAddress: data.public_address as boolean,
+    publicBirthDate: data.public_birth_date as boolean,
     publicEmail: data.public_email as boolean,
   };
 }
@@ -92,7 +96,7 @@ export async function listAdministratorProfileDetails(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, avatar_url, display_name, real_name, phone, address, gender, public_gender, public_real_name, public_phone, public_address",
+      "id, avatar_url, display_name, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date",
     )
     .in("id", requestedProfileIds);
 
@@ -107,10 +111,12 @@ export async function listAdministratorProfileDetails(
     realName: profile.real_name as string | null,
     phone: profile.phone as string | null,
     address: profile.address as string | null,
+    birthDate: profile.birth_date as string | null,
     gender: profile.gender as ProfileGender | null,
     publicGender: profile.public_gender as boolean,
     publicRealName: profile.public_real_name as boolean,
     publicPhone: profile.public_phone as boolean,
     publicAddress: profile.public_address as boolean,
+    publicBirthDate: profile.public_birth_date as boolean,
   }));
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { listPublicComments } from "@/features/comments/server/comment-service";
+import { CommentsSkeleton } from "@/components/feedback/comments-skeleton";
+import { StreamedComments } from "@/features/comments/components/streamed-comments";
 import { getPublicStoryBySlug } from "@/features/content/server/public-media-content-service";
 import { StoryDetail } from "@/features/media-content/components/story-detail";
 
@@ -17,6 +19,5 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const story = await getPublicStoryBySlug(slug);
   if (!story) notFound();
-  const comments = await listPublicComments(story.id);
-  return <StoryDetail comments={comments} story={story} />;
+  return <StoryDetail comments={<Suspense fallback={<CommentsSkeleton />}><StreamedComments contentId={story.id} /></Suspense>} story={story} />;
 }

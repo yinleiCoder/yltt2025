@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 
 import { AuthHashErrorRedirect } from "@/features/auth/components/auth-hash-error-redirect";
+import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col overflow-x-clip selection:bg-fuchsia-300 selection:text-fuchsia-900">
         <AuthHashErrorRedirect />
+        <Toaster closeButton position="top-right" />
         {children}
       </body>
     </html>

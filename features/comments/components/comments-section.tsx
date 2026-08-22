@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,8 +36,15 @@ export function CommentsSection({
     initialState,
   );
   const router = useRouter();
+  const [isMutating, startMutation] = useTransition();
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [showAddResult, setShowAddResult] = useState(true);
+
+  useEffect(() => {
+    if (!showAddResult) return;
+    if (state.success) toast.success(state.success);
+    if (state.error) toast.error(state.error);
+  }, [showAddResult, state.error, state.success]);
 
   function handleAddComment(formData: FormData) {
     setShowAddResult(true);
@@ -45,17 +53,31 @@ export function CommentsSection({
   }
 
   async function handleUpdateComment(formData: FormData) {
-    const result = await updateCommentAction(formData);
-    setShowAddResult(false);
-    setMutationError(result.error ?? null);
-    router.refresh();
+    startMutation(async () => {
+      const result = await updateCommentAction(formData);
+      setShowAddResult(false);
+      setMutationError(result.error ?? null);
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.success) {
+        toast.success(result.success);
+        router.refresh();
+      }
+    });
   }
 
   async function handleDeleteComment(formData: FormData) {
-    const result = await deleteCommentAction(formData);
-    setShowAddResult(false);
-    setMutationError(result.error ?? null);
-    router.refresh();
+    startMutation(async () => {
+      const result = await deleteCommentAction(formData);
+      setShowAddResult(false);
+      setMutationError(result.error ?? null);
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.success) {
+        toast.success(result.success);
+        router.refresh();
+      }
+    });
   }
 
   return (
@@ -98,7 +120,7 @@ export function CommentsSection({
           ) : null}
           <Button
             className="justify-self-end bg-black text-white"
-            disabled={isPending}
+            disabled={isPending || isMutating}
             type="submit"
             variant="outline"
           >
@@ -149,8 +171,8 @@ export function CommentsSection({
                       required
                       maxLength={2000}
                     />
-                    <Button size="sm" type="submit" variant="ghost">
-                      保存
+                    <Button disabled={isPending || isMutating} size="sm" type="submit" variant="ghost">
+                      {isMutating ? "保存中..." : "保存"}
                     </Button>
                   </form>
                   <form
@@ -161,8 +183,8 @@ export function CommentsSection({
                     }}
                   >
                     <input name="commentId" type="hidden" value={comment.id} />
-                    <Button size="sm" type="submit" variant="ghost">
-                      删除
+                    <Button disabled={isPending || isMutating} size="sm" type="submit" variant="ghost">
+                      {isMutating ? "删除中..." : "删除"}
                     </Button>
                   </form>
                 </div>

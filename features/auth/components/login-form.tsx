@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { GalleryVerticalEnd } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,10 @@ export function LoginForm({
     passwordError: passwordState.error,
     githubError: githubState.error,
   });
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

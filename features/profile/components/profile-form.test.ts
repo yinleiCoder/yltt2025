@@ -14,11 +14,13 @@ describe("ProfileForm", () => {
       "realName",
       "phone",
       "address",
+      "birthDate",
       "gender",
       "publicGender",
       "publicRealName",
       "publicPhone",
       "publicAddress",
+      "publicBirthDate",
       "avatarObjectKey",
     ]) {
       expect(source).toContain(field);

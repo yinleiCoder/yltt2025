@@ -8,11 +8,13 @@ describe("parseProfileDraft", () => {
     realName: "Mika Tanaka",
     phone: "+81 90 1234 5678",
     address: "Sakyo Ward, Kyoto",
+    birthDate: "1990-06-15",
     gender: "female",
     publicGender: true,
     publicRealName: false,
     publicPhone: false,
     publicAddress: false,
+    publicBirthDate: false,
   };
 
   it("accepts profile fields at their supported lengths and gender values", () => {
@@ -40,5 +42,17 @@ describe("parseProfileDraft", () => {
 
   it("rejects unsupported gender values", () => {
     expect(() => parseProfileDraft({ ...validDraft, gender: "prefer-not-to-say" })).toThrow();
+  });
+
+  it("accepts a complete birth date and normalizes a blank date to null", () => {
+    expect(parseProfileDraft(validDraft)).toMatchObject({ birthDate: "1990-06-15" });
+    expect(parseProfileDraft({ ...validDraft, birthDate: "  " })).toMatchObject({
+      birthDate: null,
+    });
+  });
+
+  it("rejects invalid or future birth dates", () => {
+    expect(() => parseProfileDraft({ ...validDraft, birthDate: "1990-02-30" })).toThrow();
+    expect(() => parseProfileDraft({ ...validDraft, birthDate: "2999-01-01" })).toThrow();
   });
 });

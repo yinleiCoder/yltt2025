@@ -10,7 +10,7 @@ export default async function ProfilePage() {
     const profile = await getCurrentProfileDetails();
 
     return (
-      <main className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16 bg-[rgb(283,283,283)]">
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-8 sm:py-10 bg-[rgb(283,283,283)]">
         <ProfileMotion>
           <header data-profile-motion="heading" className="max-w-2xl border-b border-border pb-8">
             <p className="text-sm text-muted-foreground">个人中心</p>
@@ -26,11 +26,13 @@ export default async function ProfilePage() {
                 realName: profile.realName,
                 phone: profile.phone,
                 address: profile.address,
+                birthDate: profile.birthDate,
                 gender: profile.gender,
                 publicGender: profile.publicGender,
                 publicRealName: profile.publicRealName,
                 publicPhone: profile.publicPhone,
                 publicAddress: profile.publicAddress,
+                publicBirthDate: profile.publicBirthDate,
                 publicEmail: profile.publicEmail ?? false,
               }}
             />

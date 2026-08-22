@@ -1,5 +1,7 @@
 "use client";
 
+import { useFormStatus } from "react-dom";
+
 import { Button } from "@/components/ui/button";
 import { deleteContentAction } from "@/features/content/server/actions";
 
@@ -14,7 +16,12 @@ export function DeleteContentForm({ id }: { id: string }) {
       }}
     >
       <input name="id" type="hidden" value={id} />
-      <Button size="sm" type="submit" variant="destructive">删除内容</Button>
+      <DeleteContentButton />
     </form>
   );
+}
+
+function DeleteContentButton() {
+  const { pending } = useFormStatus();
+  return <Button disabled={pending} size="sm" type="submit" variant="destructive">{pending ? "正在删除..." : "删除内容"}</Button>;
 }

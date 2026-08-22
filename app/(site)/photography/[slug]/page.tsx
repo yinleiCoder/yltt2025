@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { getPublicPhotoBySlug } from "@/features/content/server/public-photography-service";
-import { listPublicComments } from "@/features/comments/server/comment-service";
+import { CommentsSkeleton } from "@/components/feedback/comments-skeleton";
+import { StreamedComments } from "@/features/comments/components/streamed-comments";
 import { PhotographyDetail } from "@/features/photography/components/photography-detail";
 
 type PhotoPageProps = {
@@ -24,7 +26,5 @@ export default async function PhotographyDetailPage({ params }: PhotoPageProps) 
   const { slug } = await params;
   const photo = await getPublicPhotoBySlug(slug);
   if (!photo) notFound();
-  const comments = await listPublicComments(photo.id);
-
-  return <PhotographyDetail comments={comments} photo={photo} />;
+  return <PhotographyDetail comments={<Suspense fallback={<CommentsSkeleton />}><StreamedComments contentId={photo.id} /></Suspense>} photo={photo} />;
 }

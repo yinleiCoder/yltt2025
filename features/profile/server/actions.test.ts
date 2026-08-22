@@ -37,9 +37,11 @@ function createValidFormData(): FormData {
   formData.set("realName", "Mika Tanaka");
   formData.set("phone", "+81 90 1234 5678");
   formData.set("address", "Sakyo Ward, Kyoto");
+  formData.set("birthDate", "1990-06-15");
   formData.set("gender", "female");
   formData.set("publicGender", "on");
   formData.set("publicRealName", "on");
+  formData.set("publicBirthDate", "on");
   return formData;
 }
 
@@ -107,11 +109,13 @@ describe("updateProfileAction", () => {
       real_name: "Mika Tanaka",
       phone: "+81 90 1234 5678",
       address: "Sakyo Ward, Kyoto",
+      birth_date: "1990-06-15",
       gender: "female",
       public_gender: true,
       public_real_name: true,
       public_phone: false,
       public_address: false,
+      public_birth_date: true,
       public_email: false,
     });
     expect(eq).toHaveBeenCalledTimes(1);

@@ -1,8 +1,7 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { PublicPhotographyItem } from "@/features/content/server/public-photography-service";
-import type { PublicComment } from "@/features/comments/server/comment-service";
-import { CommentsSection } from "@/features/comments/components/comments-section";
 import { PhotoLightbox } from "@/features/media/components/photo-lightbox";
 
 export function PhotographyDetail({
@@ -10,7 +9,7 @@ export function PhotographyDetail({
   comments,
 }: {
   photo: PublicPhotographyItem;
-  comments: PublicComment[];
+  comments: ReactNode;
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
@@ -108,7 +107,7 @@ export function PhotographyDetail({
             </section>
           </div>
         </div>
-        <CommentsSection comments={comments} contentId={photo.id} />
+        {comments}
       </article>
     </main>
   );

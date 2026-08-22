@@ -3,6 +3,20 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
 .typeset-docs {
   --typeset-font-body: var(--font-geist);
   --typeset-font-heading: var(--font-geist);

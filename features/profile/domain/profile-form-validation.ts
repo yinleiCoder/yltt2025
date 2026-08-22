@@ -1,7 +1,7 @@
-import { profileGenderSchema } from "@/features/profile/domain/profile-schema";
+import { profileBirthDateSchema, profileGenderSchema } from "@/features/profile/domain/profile-schema";
 
 export type ProfileFormFieldErrors = Partial<
-  Record<"displayName" | "realName" | "phone" | "address" | "gender", string>
+  Record<"displayName" | "realName" | "phone" | "address" | "birthDate" | "gender", string>
 >;
 
 type ProfileFormValues = {
@@ -9,6 +9,7 @@ type ProfileFormValues = {
   realName: string;
   phone: string;
   address: string;
+  birthDate?: string;
   gender: string;
 };
 
@@ -22,6 +23,10 @@ export function validateProfileFormValues(values: ProfileFormValues): ProfileFor
   validateOptionalText(values.realName, 80, "真实姓名", "realName", errors);
   validateOptionalText(values.phone, 32, "手机号", "phone", errors);
   validateOptionalText(values.address, 240, "住址", "address", errors);
+
+  if (values.birthDate && !profileBirthDateSchema.safeParse(values.birthDate).success) {
+    errors.birthDate = "请输入有效的出生日期。";
+  }
 
   const gender = values.gender.trim();
   if (gender && !profileGenderSchema.safeParse(gender).success) {

@@ -57,11 +57,13 @@ type ProfileFormValues = {
   realName: string | null;
   phone: string | null;
   address: string | null;
+  birthDate: string | null;
   gender: ProfileGender | null;
   publicGender: boolean;
   publicRealName: boolean;
   publicPhone: boolean;
   publicAddress: boolean;
+  publicBirthDate: boolean;
   publicEmail: boolean;
 };
 
@@ -134,6 +136,7 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
       realName: formValue(formData, "realName"),
       phone: formValue(formData, "phone"),
       address: formValue(formData, "address"),
+      birthDate: formValue(formData, "birthDate"),
       gender: formValue(formData, "gender"),
     });
     setFieldErrors(validationErrors);
@@ -157,7 +160,9 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
         if (objectKey) submittedFormData.set("avatarObjectKey", objectKey);
         startSubmit(() => submitAction(submittedFormData));
       } catch (error) {
-        setAvatarError(error instanceof AvatarUploadError ? error.message : avatarPreparationError);
+        const message = error instanceof AvatarUploadError ? error.message : avatarPreparationError;
+        toast.error(message);
+        setAvatarError(message);
       } finally {
         setIsSubmissionLocked(false);
       }
@@ -302,6 +307,20 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
             publicName="publicAddress"
             visibilityDisabled={isSaving}
           />
+          <TextFieldWithVisibility
+            defaultValue={initialValues.birthDate ?? ""}
+            description="开启后，其他用户只能看到按当前日期计算的年龄。"
+            id="birthDate"
+            label="出生日期"
+            maxLength={10}
+            name="birthDate"
+            error={fieldErrors.birthDate}
+            disabled={isSaving}
+            publicDefault={initialValues.publicBirthDate}
+            publicName="publicBirthDate"
+            visibilityDisabled={isSaving}
+            type="date"
+          />
         </FieldSet>
 
         {state.error ? <FieldError>{state.error}</FieldError> : null}
@@ -343,7 +362,7 @@ function TextFieldWithVisibility({
   publicDefault: boolean;
   publicName: string;
   visibilityDisabled: boolean;
-  type?: "email" | "tel" | "text";
+  type?: "date" | "email" | "tel" | "text";
 }) {
   return (
     <Field data-invalid={Boolean(error)}>

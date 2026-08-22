@@ -1,8 +1,7 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { PublicStoryItem } from "@/features/content/server/public-media-content-service";
-import type { PublicComment } from "@/features/comments/server/comment-service";
-import { CommentsSection } from "@/features/comments/components/comments-section";
 import { StoryMarkdown } from "@/features/content/components/story-markdown";
 
 export function StoryDetail({
@@ -10,7 +9,7 @@ export function StoryDetail({
   comments,
 }: {
   story: PublicStoryItem;
-  comments: PublicComment[];
+  comments: ReactNode;
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
@@ -41,7 +40,7 @@ export function StoryDetail({
             markdown={story.markdownBody}
             unstyled
           />
-          <CommentsSection comments={comments} contentId={story.id} />
+          {comments}
         </div>
       </article>
     </main>

@@ -11,7 +11,8 @@ import {
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import type { CommentProfile } from "@/features/profile/domain/public-profile";
 import { useCurrentUserStore } from "@/features/auth/components/current-user-provider";
-import { BadgeCheck, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const genderLabels = {
   male: "男",
@@ -24,11 +25,16 @@ export function PublicProfileDialog({ profile }: { profile: CommentProfile }) {
   const displayName = profile.displayName?.trim() || "匿名用户";
   const currentUser = useCurrentUserStore((state) => state.currentUser);
   const isCurrentUser = currentUser?.id === profile.id;
-  const isAdmin = currentUser?.role == "admin"
+  const isAdmin = currentUser?.role == "admin";
   const profileTitle = profile.canViewFullProfile ? "个人资料" : "公开资料";
+  const age =
+    typeof profile.age === "number" && Number.isInteger(profile.age) && profile.age >= 0
+      ? profile.age
+      : undefined;
   const details = [
     profile.realName ? ["姓名", profile.realName] : null,
     profile.gender ? ["性别", genderLabels[profile.gender]] : null,
+    age !== undefined ? ["年龄", `${profile.age}岁`] : null,
     profile.phone ? ["电话", profile.phone] : null,
     profile.address ? ["地址", profile.address] : null,
   ].filter((detail): detail is [string, string] => detail !== null);
@@ -46,16 +52,31 @@ export function PublicProfileDialog({ profile }: { profile: CommentProfile }) {
       >
         <ProfileAvatar profile={profile} size="sm" />
         <span className="text-sm text-foreground">{displayName}</span>
-        {isCurrentUser && <ShieldCheck color="blue" />}
-        {isCurrentUser && <BadgeCheck color="green" />}
+        {isAdmin && (
+          <Badge variant="secondary" className='bg-blue-50 text-blue-700'>
+            <BadgeCheck data-icon="inline-start" />
+            管理员
+          </Badge>
+        )}
+        {isCurrentUser && (
+          <Badge variant="outline" className='bg-green-50 text-green-700'>
+            <ShieldCheck data-icon="inline-end"  />
+            我
+          </Badge>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[min(36rem,calc(100dvh-2rem))] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{displayName} 的{profileTitle}</DialogTitle>
+          <DialogTitle>
+            {displayName} 的{profileTitle}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex items-center gap-3">
           <ProfileAvatar profile={profile} size="lg" />
-          <p className="font-medium">{displayName}{isCurrentUser ? "（我）" : ""}</p>
+          <p className="font-medium">
+            {displayName}
+            {isCurrentUser ? "（我）" : ""}
+          </p>
         </div>
         {details.length > 0 ? (
           <dl className="grid gap-3 text-sm break-words">
@@ -67,7 +88,9 @@ export function PublicProfileDialog({ profile }: { profile: CommentProfile }) {
             ))}
           </dl>
         ) : (
-          <p className="text-sm text-muted-foreground">该用户暂未公开更多资料</p>
+          <p className="text-sm text-muted-foreground">
+            该用户暂未公开更多资料
+          </p>
         )}
       </DialogContent>
     </Dialog>
