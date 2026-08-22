@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 import { MediaFilePreview } from "@/features/media/components/media-file-preview";
 import { StoryMarkdownEditor } from "@/features/admin/components/story-markdown-editor";
 import {
+  CurrentLocationError,
   getCurrentLocation,
   getIpLocation,
   locationErrorMessage,
@@ -98,6 +100,12 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   const [isSubmitting, startSubmit] = useTransition();
   const isEdit = mode === "edit";
 
+  useEffect(() => {
+    if (state.success) toast.success(state.success);
+    if (state.warning) toast.warning(state.warning);
+    if (state.error) toast.error(state.error);
+  }, [state.error, state.success, state.warning]);
+
   function updatePhotoValue(field: keyof PhotoExifFormValues, value: string) {
     setPhotoValues((current) => ({ ...current, [field]: value }));
   }
@@ -110,9 +118,12 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
 
     if (!file || kind !== "photo") return;
 
+    const exifToastId = toast.loading("正在读取照片信息...");
+
     const result = await readContentPhotoExif(file, readPhotoExif);
     if (!result.ok) {
       setExifError(result.error);
+      toast.error(result.error, { id: exifToastId });
       return;
     }
 
@@ -132,8 +143,10 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       } else {
         setExifStatus("已读取照片参数。图片未包含 GPS 坐标，请确认地点隐私级别。");
       }
+      toast.success("已读取照片信息。", { id: exifToastId });
     } catch {
       setExifError("无法读取这张照片的 EXIF 信息。");
+      toast.error("无法读取这张照片的 EXIF 信息。", { id: exifToastId });
     }
   }
 
@@ -142,6 +155,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
 
     setIsLocating(true);
     setLocationStatus("正在获取当前位置...");
+    const locationToastId = toast.loading("正在获取当前位置...");
     try {
       const resolution = await resolveCurrentLocation({ getPrecise: getCurrentLocation, getIp: getIpLocation });
       if (resolution.source === "precise") {
@@ -157,6 +171,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
           }));
         }
       setLocationStatus(place ? "已获取当前位置并解析地点，请确认后再提交。" : "已获取坐标，但地点名称解析失败，请手动填写。");
+        toast.success("位置坐标已获取，请确认地点。", { id: locationToastId });
       } else if (resolution.source === "ip") {
         setLocationVisibility("city");
         updatePhotoValue("latitude", "");
@@ -167,8 +182,10 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
           region: resolution.region ?? current.region,
         }));
         setLocationStatus("浏览器精确定位不可用，已根据网络位置填写城市和地区，请确认后再提交。");
+        toast.success("已根据网络位置填写城市和地区。", { id: locationToastId });
       } else {
-        setLocationStatus(`${locationErrorMessage(new Error(resolution.preciseError))} 当前未能自动填充，请手动填写地点。`);
+        setLocationStatus(`${locationErrorMessage(new CurrentLocationError(resolution.preciseError))} 当前未能自动填充，请手动填写地点。`);
+        toast.error("无法自动获取位置，请手动填写地点。", { id: locationToastId });
       }
     } finally {
       setIsLocating(false);
@@ -184,6 +201,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   }
 
   function uploadAndSubmit(formData: FormData) {
+    const uploadToastId = toast.loading("正在处理媒体并保存内容...");
     startUpload(async () => {
       try {
         setUploadError(null);
@@ -196,18 +214,17 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
         }
 
         startSubmit(() => submitAction(formData));
+        toast.success("媒体处理完成，正在保存内容。", { id: uploadToastId });
       } catch (error) {
-        setUploadError(
-          error instanceof ContentMediaUploadError
-            ? error.message
-            : "媒体上传失败，请稍后重试。",
-        );
+        const message = error instanceof ContentMediaUploadError ? error.message : "媒体上传失败，请稍后重试。";
+        setUploadError(message);
+        toast.error(message, { id: uploadToastId });
       }
     });
   }
 
   return (
-    <form className="grid max-w-3xl gap-6 py-8" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
+    <form aria-busy={isPending || isUploading || isSubmitting} className="grid max-w-3xl gap-6 py-8" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
       {initialValues?.id ? <input name="id" type="hidden" value={initialValues.id} /> : null}
       {isEdit ? <input name="kind" type="hidden" value={kind} /> : null}
       <FieldGroup className="grid gap-5 md:grid-cols-2">
