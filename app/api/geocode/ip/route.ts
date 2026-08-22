@@ -17,10 +17,14 @@ export function getClientIp(headers: Headers): string | null {
 
   for (const candidate of candidates) {
     const ip = candidate?.trim();
-    if (ip && isIP(ip)) return ip;
+    if (ip && isIP(ip) && !isLoopbackIp(ip)) return ip;
   }
 
   return null;
+}
+
+function isLoopbackIp(ip: string): boolean {
+  return ip === "::1" || ip === "0:0:0:0:0:0:0:1" || ip === "127.0.0.1" || ip.startsWith("127.") || ip.endsWith(":127.0.0.1");
 }
 
 export async function GET(request: Request) {

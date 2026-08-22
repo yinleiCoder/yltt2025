@@ -18,6 +18,11 @@ describe("getClientIp", () => {
     expect(getClientIp(new Headers({ "x-forwarded-for": "198.51.100.4, 10.0.0.1" }))).toBe("198.51.100.4");
     expect(getClientIp(new Headers({ "x-real-ip": "192.0.2.1" }))).toBe("192.0.2.1");
   });
+
+  it("ignores local loopback addresses", () => {
+    expect(getClientIp(new Headers({ "x-forwarded-for": "::1" }))).toBeNull();
+    expect(getClientIp(new Headers({ "x-forwarded-for": "127.0.0.1" }))).toBeNull();
+  });
 });
 
 describe("GET /api/geocode/ip", () => {
