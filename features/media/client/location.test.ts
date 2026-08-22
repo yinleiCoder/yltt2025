@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getCurrentLocation, reverseGeocode } from "./location";
+import { getCurrentLocation, getIpLocation, reverseGeocode } from "./location";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("location helpers", () => {
   it("normalizes a reverse geocoding response", async () => {
@@ -38,5 +42,27 @@ describe("location helpers", () => {
 
     await expect(getCurrentLocation(geolocation)).resolves.toEqual({ latitude: 30, longitude: 105 });
     expect(geolocation.getCurrentPosition).toHaveBeenCalledOnce();
+  });
+
+  it("reports permission denial distinctly", async () => {
+    const geolocation = {
+      getCurrentPosition: vi.fn((_success: PositionCallback, error: PositionErrorCallback) =>
+        error({ code: 1 } as GeolocationPositionError),
+      ),
+    };
+
+    await expect(getCurrentLocation(geolocation)).rejects.toMatchObject({ code: "permission-denied" });
+  });
+
+  it("returns city-level IP location", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ city: "成都", region: "四川省" }))));
+
+    await expect(getIpLocation()).resolves.toEqual({ city: "成都", region: "四川省" });
+  });
+
+  it("returns null when IP location cannot be retrieved", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "unavailable" }), { status: 502 })));
+
+    await expect(getIpLocation()).resolves.toBeNull();
   });
 });
