@@ -32,6 +32,7 @@ export function PublicProfileDialog({ profile }: { profile: CommentProfile }) {
       ? profile.age
       : undefined;
   const details = [
+    profile.email ? ["邮箱", profile.email] : null,
     profile.realName ? ["姓名", profile.realName] : null,
     profile.gender ? ["性别", genderLabels[profile.gender]] : null,
     age !== undefined ? ["年龄", `${profile.age}岁`] : null,

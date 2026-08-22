@@ -25,7 +25,7 @@ export async function listAdminUsers() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, avatar_url, display_name, role, created_at, public_gender, public_real_name, public_phone, public_address, real_name, phone, address, gender",
+      "id, avatar_url, display_name, role, created_at, public_email, public_gender, public_real_name, public_phone, public_address, public_birth_date, real_name, phone, address, gender",
     )
     .order("created_at", { ascending: false });
 
@@ -40,10 +40,12 @@ export async function listAdminUsers() {
     role: profile.role as UserRole,
     createdAt: profile.created_at as string,
     publicProfile: {
+      email: profile.public_email as boolean,
       gender: profile.public_gender as boolean,
       realName: profile.public_real_name as boolean,
       phone: profile.public_phone as boolean,
       address: profile.public_address as boolean,
+      birthDate: profile.public_birth_date as boolean,
     },
     details: {
       realName: profile.real_name as string | null,

@@ -22,10 +22,12 @@ function formatDate(date: string) {
 
 function publicFields(user: Awaited<ReturnType<typeof listAdminUsers>>[number]) {
   const labels = [
+    user.publicProfile.email && "邮箱",
     user.publicProfile.gender && "性别",
     user.publicProfile.realName && "姓名",
     user.publicProfile.phone && "电话",
     user.publicProfile.address && "住址",
+    user.publicProfile.birthDate && "出生日期",
   ].filter(Boolean);
 
   return labels.length ? labels.join("、") : "未公开";

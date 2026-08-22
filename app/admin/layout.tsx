@@ -10,8 +10,8 @@ import {
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   try {
-    await requireAdministrator();
-    return <AdminShell>{children}</AdminShell>;
+    const administrator = await requireAdministrator();
+    return <AdminShell profile={administrator}>{children}</AdminShell>;
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) redirect("/login?next=/admin");
     if (error instanceof AdministratorRequiredError) redirect("/");

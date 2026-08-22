@@ -47,6 +47,8 @@ describe("admin management service", () => {
         public_real_name: false,
         public_phone: true,
         public_address: false,
+        public_email: true,
+        public_birth_date: true,
         real_name: "周青禾",
         phone: "13800138000",
         address: "四川省成都市",
@@ -69,6 +71,8 @@ describe("admin management service", () => {
           realName: false,
           phone: true,
           address: false,
+          email: true,
+          birthDate: true,
         },
         details: {
           realName: "周青禾",
@@ -81,7 +85,7 @@ describe("admin management service", () => {
 
     expect(mocks.requireAdministrator).toHaveBeenCalledTimes(1);
     expect(profiles.select).toHaveBeenCalledWith(
-      "id, avatar_url, display_name, role, created_at, public_gender, public_real_name, public_phone, public_address, real_name, phone, address, gender",
+      "id, avatar_url, display_name, role, created_at, public_email, public_gender, public_real_name, public_phone, public_address, public_birth_date, real_name, phone, address, gender",
     );
   });
 
