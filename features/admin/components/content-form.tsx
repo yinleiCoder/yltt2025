@@ -121,6 +121,8 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     city: initialValues?.city ?? "",
     region: initialValues?.region ?? "",
   });
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [occurredAt, setOccurredAt] = useState(toDateInputValue(initialValues?.occurredAt));
   const [photoValues, setPhotoValues] = useState<PhotoExifFormValues>(() => mapInitialPhotoValues(initialValues));
   const [isUploading, startUpload] = useTransition();
   const [isSubmitting, startSubmit] = useTransition();
@@ -273,11 +275,11 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     <form aria-busy={isPending || isUploading || isSubmitting} className="grid max-w-3xl gap-6 py-8" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
       {initialValues?.id ? <input name="id" type="hidden" value={initialValues.id} /> : null}
       {isEdit ? <input name="kind" type="hidden" value={kind} /> : null}
-      {kind === "story" ? <section aria-labelledby="story-settings-title" className="grid gap-4 rounded-lg border bg-muted/10 p-4"><div className="grid gap-1"><h2 className="text-sm font-medium" id="story-settings-title">故事设置</h2><FieldDescription>选择故事发生日期，公开故事会按这个日期从近到远排列。</FieldDescription></div><Field><FieldLabel htmlFor="occurredAt">故事发生日期</FieldLabel><Input defaultValue={toDateInputValue(initialValues?.occurredAt)} id="occurredAt" name="occurredAt" type="date" required /></Field></section> : null}
+      {kind === "story" ? <section aria-labelledby="story-settings-title" className="grid gap-4 rounded-lg border bg-muted/10 p-4"><div className="grid gap-1"><h2 className="text-sm font-medium" id="story-settings-title">故事设置</h2><FieldDescription>选择故事发生日期，公开故事会按这个日期从近到远排列。</FieldDescription></div><Field><FieldLabel htmlFor="occurredAt">故事发生日期</FieldLabel><Input id="occurredAt" name="occurredAt" onChange={(event) => setOccurredAt(event.target.value)} type="date" value={occurredAt} required /></Field></section> : null}
       <FieldGroup className="grid gap-5 md:grid-cols-2">
         <Field><FieldLabel htmlFor="kind">内容类型</FieldLabel><Select disabled={isEdit} name={isEdit ? undefined : "kind"} value={kind} onValueChange={(value) => handleKindChange(value as ContentFormInitialValues["kind"])}><SelectTrigger id="kind"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="photo">摄影</SelectItem><SelectItem value="video">短片</SelectItem><SelectItem value="story">故事</SelectItem></SelectContent></Select></Field>
-        <Field><FieldLabel htmlFor="title">标题</FieldLabel><Input defaultValue={initialValues?.title ?? ""} id="title" name="title" required /></Field>
-        <Field><FieldLabel htmlFor="slug">系统网址标识</FieldLabel><FieldDescription>由系统自动生成，创建后保持不变。</FieldDescription><Input className="font-mono text-xs" defaultValue={initialValues?.slug ?? "创建后生成"} disabled={mode === "create" || !initialValues?.slug} id="slug" name={mode === "edit" ? undefined : "slug"} readOnly={mode === "create"} /><input name={mode === "edit" ? "slug" : undefined} type="hidden" value={initialValues?.slug ?? ""} /></Field>
+        <Field><FieldLabel htmlFor="title">标题</FieldLabel><Input id="title" name="title" onChange={(event) => setTitle(event.target.value)} required value={title} /></Field>
+        <Field><FieldLabel htmlFor="slug">系统网址标识</FieldLabel><FieldDescription>由系统自动生成，创建后保持不变。</FieldDescription><Input className="font-mono text-xs" disabled={mode === "create" || !initialValues?.slug} id="slug" name={mode === "edit" ? undefined : "slug"} readOnly={mode === "create"} value={initialValues?.slug ?? "创建后生成"} /><input name={mode === "edit" ? "slug" : undefined} type="hidden" value={initialValues?.slug ?? ""} /></Field>
         <Field><FieldLabel htmlFor="excerpt">摘要</FieldLabel><Textarea defaultValue={initialValues?.excerpt ?? ""} id="excerpt" name="excerpt" /></Field>
       </FieldGroup>
       {kind === "story" ? <>
@@ -290,7 +292,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
           <StoryImageUpload initialImages={initialValues?.storyImages ?? []} onPendingChange={setStoryImagesPending} />
         </section>
       </> : null}
-      {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "支持 JPEG、PNG、WebP、HEIC、HEIF；Live Photo 的静态照片可直接上传。" : "支持 MP4、MOV、M4V，上传后会自动转换为网页兼容视频。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => { setMediaFile(null); setVideoMetadata(null); setVideoMetadataStatus(null); }} onError={setUploadError} />{uploadProgress !== null ? <Progress aria-label="媒体处理和上传进度" value={uploadProgress}><ProgressLabel>{uploadProgress < 35 ? "正在转换媒体" : "正在上传媒体"}</ProgressLabel><ProgressValue /></Progress> : null}</Field> : null}
+      {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "支持 JPEG、PNG、WebP、HEIC、HEIF，单个文件不超过 200 MB；Live Photo 的静态照片可直接上传。" : "支持 MP4、MOV、M4V，单个文件不超过 2 GB，上传后会自动转换为网页兼容视频。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => { setMediaFile(null); setVideoMetadata(null); setVideoMetadataStatus(null); }} onError={setUploadError} />{uploadProgress !== null ? <Progress aria-label="媒体处理和上传进度" value={uploadProgress}><ProgressLabel>{uploadProgress < 35 ? "正在转换媒体" : "正在上传媒体"}</ProgressLabel><ProgressValue /></Progress> : null}</Field> : null}
       {kind === "photo" ? <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2"><label htmlFor="aperture">光圈（f 值）</label><Input id="aperture" name="aperture" onChange={(event) => updatePhotoValue("aperture", event.target.value)} placeholder="例如 2.8" type="number" step="0.1" value={photoValues.aperture ?? ""} /></div>
         <div className="grid gap-2"><label htmlFor="shutterSpeed">快门速度</label><Input id="shutterSpeed" name="shutterSpeed" onChange={(event) => updatePhotoValue("shutterSpeed", event.target.value)} placeholder="例如 1/250" value={photoValues.shutterSpeed ?? ""} /></div>
