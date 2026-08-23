@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/admin", label: "概览", icon: LayoutDashboard },
-  { href: "/admin/content/new", label: "内容管理", icon: FilePenLine },
+  { href: "/admin/content", label: "内容管理", icon: FilePenLine },
   { href: "/admin/users", label: "用户管理", icon: UsersRound },
   { href: "/admin/comments", label: "评论审核", icon: MessageSquareMore },
   { href: "/admin/audit", label: "审计日志", icon: ClipboardList },

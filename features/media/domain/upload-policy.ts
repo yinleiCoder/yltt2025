@@ -25,7 +25,17 @@ type AvatarObjectKeyInput = {
 const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
-const PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PHOTO_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/x-m4v"]);
+const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const objectKeySegmentPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export class UploadPolicyError extends Error {
@@ -39,37 +49,40 @@ export function validateMediaUpload(upload: MediaUpload): {
   kind: MediaKind;
   mimeType: string;
 } {
-  if (PHOTO_MIME_TYPES.has(upload.mimeType)) {
+  const mimeType = resolveMediaMimeType(upload.name, upload.mimeType);
+
+  if (PHOTO_MIME_TYPES.has(mimeType)) {
     if (upload.size > MAX_PHOTO_BYTES) {
       throw new UploadPolicyError("照片文件不能超过 25 MB。");
     }
 
-    return { kind: "photo", mimeType: upload.mimeType };
+    return { kind: "photo", mimeType };
   }
 
-  if (upload.mimeType === "video/mp4") {
+  if (VIDEO_MIME_TYPES.has(mimeType)) {
     if (upload.size > MAX_VIDEO_BYTES) {
       throw new UploadPolicyError("视频文件不能超过 500 MB。");
     }
 
-    return { kind: "video", mimeType: upload.mimeType };
+    return { kind: "video", mimeType };
   }
 
   throw new UploadPolicyError(
-    "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
+    "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
   );
 }
 
 export function validateStoryImageUpload(upload: MediaUpload): { kind: "photo"; mimeType: string } {
-  if (!PHOTO_MIME_TYPES.has(upload.mimeType)) {
-    throw new UploadPolicyError("故事图片仅支持 JPEG、PNG 或 WebP 图片。");
+  const mimeType = resolveMediaMimeType(upload.name, upload.mimeType);
+  if (!PHOTO_MIME_TYPES.has(mimeType)) {
+    throw new UploadPolicyError("故事图片仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。");
   }
 
   if (upload.size > MAX_PHOTO_BYTES) {
     throw new UploadPolicyError("照片文件不能超过 25 MB。");
   }
 
-  return { kind: "photo", mimeType: upload.mimeType };
+  return { kind: "photo", mimeType };
 }
 
 export function createStoryImageObjectKey(input: Omit<MediaObjectKeyInput, "kind">): string {
@@ -86,7 +99,7 @@ export class AvatarObjectKeyError extends Error {
 }
 
 export function validateAvatarUpload(upload: MediaUpload): { mimeType: string } {
-  if (!PHOTO_MIME_TYPES.has(upload.mimeType)) {
+  if (!AVATAR_MIME_TYPES.has(upload.mimeType)) {
     throw new UploadPolicyError("头像仅支持 JPEG、PNG 或 WebP 图片。");
   }
 
@@ -157,13 +170,32 @@ function fileStem(originalName: string): string {
 
 function extensionFor(originalName: string, kind: MediaKind): string {
   const extension = originalName.split(".").at(-1)?.toLowerCase();
-  const permitted = kind === "photo" ? ["jpg", "jpeg", "png", "webp"] : ["mp4"];
+  const permitted = kind === "photo"
+    ? ["jpg", "jpeg", "png", "webp", "heic", "heif"]
+    : ["mp4", "mov", "m4v"];
 
   if (extension && permitted.includes(extension)) {
     return extension === "jpeg" ? "jpg" : extension;
   }
 
   return kind === "photo" ? "jpg" : "mp4";
+}
+
+export function resolveMediaMimeType(originalName: string, mimeType: string): string {
+  if (mimeType.trim()) return mimeType.toLowerCase();
+
+  switch (originalName.split(".").at(-1)?.toLowerCase()) {
+    case "heic": return "image/heic";
+    case "heif": return "image/heif";
+    case "mov": return "video/quicktime";
+    case "m4v": return "video/x-m4v";
+    case "jpg":
+    case "jpeg": return "image/jpeg";
+    case "png": return "image/png";
+    case "webp": return "image/webp";
+    case "mp4": return "video/mp4";
+    default: return "";
+  }
 }
 
 function avatarExtensionFor(mimeType: string): "jpg" | "png" | "webp" {

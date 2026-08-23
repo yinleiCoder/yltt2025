@@ -24,7 +24,7 @@ export default async function AdminContentDetailPage({ params }: AdminContentDet
   if (!item) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main className="container mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-6">
         <div>
           <p className="text-sm text-muted-foreground">{contentKindLabels[item.kind]} · {item.slug}</p>
@@ -39,6 +39,7 @@ export default async function AdminContentDetailPage({ params }: AdminContentDet
 
       <dl className="mt-8 grid gap-px border-y sm:grid-cols-2">
         <DetailRow label="发布状态" value={item.publishedAt ? `已发布 · ${formatDate(item.publishedAt)}` : "草稿"} />
+        {item.kind === "story" ? <DetailRow label="故事发生日期" value={item.occurredAt ? formatDate(item.occurredAt) : null} /> : null}
         <DetailRow label="首页精选" value={item.isFeatured ? "是" : "否"} />
         <DetailRow label="地点公开范围" value={locationVisibilityLabel(item.locationVisibility)} />
         <DetailRow label="地点" value={formatLocation(item)} />

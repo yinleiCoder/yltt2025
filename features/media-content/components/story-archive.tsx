@@ -8,7 +8,7 @@ import type {
 export function StoryArchive({ archive }: { archive: PublicStoryArchive }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <section className="mx-auto w-full max-w-7xl px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
+      <section className="container mx-auto w-full px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
         <div className="grid gap-8 border-b border-[#d2d2d2] pb-10 lg:grid-cols-[1fr_22rem] lg:items-end">
           <div>
             <p className="font-mono text-[0.7rem] text-[#222222]">
@@ -57,11 +57,12 @@ function StoryCard({ item, index }: { item: PublicStoryItem; index: number }) {
         </p>
         <div>
           <p className="font-mono text-[0.65rem] text-[#222222]">
-            {formatDate(item.publishedAt)}
+              {formatDate(item.occurredAt ?? item.publishedAt)}
           </p>
           <h2 className="mt-2 font-[family-name:var(--font-editorial)] text-3xl leading-tight">
             {item.title}
           </h2>
+          {item.location ? <p className="mt-2 text-xs text-[#222222]">{formatLocation(item.location)}</p> : null}
           {item.excerpt ? (
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#222222]">
               {item.excerpt}
@@ -72,6 +73,10 @@ function StoryCard({ item, index }: { item: PublicStoryItem; index: number }) {
       </Link>
     </article>
   );
+}
+
+function formatLocation(location: NonNullable<PublicStoryItem["location"]>) {
+  return "label" in location ? `${location.label} / ${location.city}` : `${location.city} / ${location.region}`;
 }
 
 function formatDate(value: string) {

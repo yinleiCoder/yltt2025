@@ -5,13 +5,13 @@ import type { PublicVideoArchive, PublicVideoItem } from "@/features/content/ser
 export function VideoArchive({ archive }: { archive: PublicVideoArchive }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <section className="mx-auto w-full max-w-7xl px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
+      <section className="container mx-auto w-full px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
         <div className="grid gap-8 border-b border-[#d2d2d2] pb-10 lg:grid-cols-[1fr_22rem] lg:items-end">
           <div>
             <p className="font-mono text-[0.7rem] text-[#222222]">MOTION / SHORT FILMS</p>
             <h1 className="mt-4 font-[family-name:var(--font-editorial)] text-5xl leading-[1.02] sm:text-7xl">让画面继续移动</h1>
           </div>
-          <p className="max-w-sm text-sm leading-7 text-[#222222]">只收录 H.264/AAC MP4。每段短片保留时长与播放状态。</p>
+          <p className="max-w-sm text-sm leading-7 text-[#222222]">支持 MP4、MOV 与 M4V。每段短片保留时长与播放状态。</p>
         </div>
 
         {archive.items.length ? (
@@ -36,11 +36,11 @@ function VideoCard({ item, index }: { item: PublicVideoItem; index: number }) {
       <article className="group border border-[#d9d9d4] bg-[rgb(248,248,248)]">
       <Link className="block" href={`/videos/${item.slug}`}>
         <div className="relative aspect-video overflow-hidden bg-[#242424]">
-          {item.posterUrl ? <img alt={`${item.title} 的视频封面`} className="h-full w-full object-cover opacity-90 transition-[transform,opacity] duration-700 group-hover:scale-[1.025] group-hover:opacity-100" decoding="async" height={item.videoDetails.height ?? 1080} loading={index < 3 ? "eager" : "lazy"} src={item.posterUrl} width={item.videoDetails.width ?? 1920} /> : <div className="grid h-full place-items-center font-mono text-xs text-[#989898]">MOTION / PENDING</div>}
+          {item.posterUrl ? <img alt={`${item.title} 的视频封面`} className="h-full w-full object-cover opacity-90 transition-all duration-700 group-hover:scale-[1.025] group-hover:opacity-100" decoding="async" height={item.videoDetails.height ?? 1080} loading={index < 3 ? "eager" : "lazy"} src={item.posterUrl} width={item.videoDetails.width ?? 1920} /> : <div className="grid h-full place-items-center font-mono text-xs text-[#989898]">MOTION / PENDING</div>}
           <span className="absolute bottom-0 left-0 bg-[#FFF083] px-3 py-2 font-mono text-[0.65rem] text-[#222222]">{String(index + 1).padStart(2, "0")}</span>
         </div>
         <div className="flex items-end justify-between gap-4 px-4 py-4">
-          <div><p className="font-mono text-[0.65rem] text-[#222222]">{formatDate(item.publishedAt)}</p><h2 className="mt-2 font-[family-name:var(--font-editorial)] text-2xl leading-tight">{item.title}</h2></div>
+          <div><p className="font-mono text-[0.65rem] text-[#222222]">{formatDate(item.publishedAt)}</p><h2 className="mt-2 font-[family-name:var(--font-editorial)] text-2xl leading-tight">{item.title}</h2>{item.location ? <p className="mt-2 text-xs text-[#222222]">{formatLocation(item.location)}</p> : null}</div>
           <p className="font-mono text-[0.65rem] text-[#222222]">{item.videoDetails.durationSeconds ? formatDuration(item.videoDetails.durationSeconds) : "OPEN"}</p>
         </div>
       </Link>
@@ -50,3 +50,4 @@ function VideoCard({ item, index }: { item: PublicVideoItem; index: number }) {
 
 function formatDate(value: string) { return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value)); }
 function formatDuration(value: number) { return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`; }
+function formatLocation(location: NonNullable<PublicVideoItem["location"]>) { return "label" in location ? `${location.label} / ${location.city}` : `${location.city} / ${location.region}`; }

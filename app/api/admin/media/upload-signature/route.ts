@@ -11,7 +11,7 @@ import { issueOssUploadSignature } from "@/features/media/server/oss-service";
 
 const uploadRequestSchema = z.object({
   name: z.string().min(1).max(255),
-  mimeType: z.string().min(1).max(100),
+  mimeType: z.string().max(100),
   size: z.number().int().positive(),
   target: z.enum(["media", "story-image"]).default("media"),
 });
@@ -19,7 +19,7 @@ const uploadRequestSchema = z.object({
 const verifiedUploadPolicyErrors = new Set([
   "照片文件不能超过 25 MB。",
   "视频文件不能超过 500 MB。",
-  "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
+  "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
 ]);
 
 export async function POST(request: Request) {
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         kind: signature.kind,
+        mimeType: signature.mimeType,
         objectKey: signature.objectKey,
         uploadUrl: signature.uploadUrl,
         expiresAt: signature.expiresAt,

@@ -1,3 +1,6 @@
+import { prepareMediaFile, mediaTranscodeError } from "@/features/media/client/transcode-media";
+import { needsMediaTranscode } from "@/features/media/client/media-format";
+
 export const contentMediaPreparationError = "媒体上传准备失败，请稍后重试。";
 export const contentMediaUploadError = "媒体上传失败，请稍后重试。";
 export const contentPhotoExifError = "无法读取这张照片的 EXIF 信息。";
@@ -8,15 +11,17 @@ const verifiedMediaUploadErrors = new Set([
   "上传请求格式不正确。",
   "照片文件不能超过 25 MB。",
   "视频文件不能超过 500 MB。",
-  "故事图片仅支持 JPEG、PNG 或 WebP 图片。",
-  "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
+  "故事图片仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。",
+  "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
   "无法创建媒体上传地址。",
 ]);
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+export type UploadProgressHandler = (percentage: number) => void;
 
 type ContentUploadSignature = {
   kind: "photo" | "video";
+  mimeType: string;
   objectKey: string;
   uploadUrl: string;
   expiresAt: string;
@@ -29,14 +34,36 @@ export class ContentMediaUploadError extends Error {
   }
 }
 
-export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch, target: "media" | "story-image" = "media"): Promise<string> {
+export async function uploadContentMedia(
+  file: File,
+  fetcher: Fetcher = fetch,
+  target: "media" | "story-image" = "media",
+  onProgress?: UploadProgressHandler,
+): Promise<string> {
+  const shouldTranscode = needsMediaTranscode(file);
+  let preparedFile: File;
+  try {
+    preparedFile = await prepareMediaFile(
+      file,
+      onProgress && shouldTranscode
+        ? (percentage) => onProgress(Math.round(percentage * 0.35))
+        : undefined,
+    );
+  } catch (error) {
+    throw new ContentMediaUploadError(
+      error instanceof Error && error.message === mediaTranscodeError
+        ? error.message
+        : contentMediaPreparationError,
+    );
+  }
+
   let signatureResponse: Response;
 
   try {
     signatureResponse = await fetcher("/api/admin/media/upload-signature", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: file.name, mimeType: file.type, size: file.size, target }),
+      body: JSON.stringify({ name: preparedFile.name, mimeType: preparedFile.type, size: preparedFile.size, target }),
     });
   } catch {
     throw new ContentMediaUploadError(contentMediaPreparationError);
@@ -52,11 +79,14 @@ export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch, t
   }
 
   try {
-    const uploadResponse = await fetcher(payload.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
+    const uploadResponse = onProgress
+      ? await uploadWithProgress(
+          payload.uploadUrl,
+          preparedFile,
+          payload.mimeType,
+          (percentage) => onProgress(Math.round((shouldTranscode ? 35 : 0) + percentage * (shouldTranscode ? 0.65 : 1))),
+        )
+      : await fetcher(payload.uploadUrl, { method: "PUT", headers: { "Content-Type": payload.mimeType }, body: preparedFile });
     if (!uploadResponse.ok) {
       throw new ContentMediaUploadError(contentMediaUploadError);
     }
@@ -66,6 +96,20 @@ export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch, t
   }
 
   return payload.objectKey;
+}
+
+function uploadWithProgress(uploadUrl: string, file: File, mimeType: string, onProgress: UploadProgressHandler): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", uploadUrl);
+    request.setRequestHeader("Content-Type", mimeType);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    request.onload = () => resolve(new Response(null, { status: request.status }));
+    request.onerror = () => reject(new Error("upload failed"));
+    request.send(file);
+  });
 }
 
 export async function readContentPhotoExif<T>(
@@ -107,6 +151,7 @@ function isContentUploadSignature(payload: unknown, target: "media" | "story-ima
   const candidate = payload as Partial<ContentUploadSignature>;
   if (
     (candidate.kind !== "photo" && candidate.kind !== "video") ||
+    typeof candidate.mimeType !== "string" ||
     typeof candidate.objectKey !== "string" ||
     typeof candidate.uploadUrl !== "string" ||
     typeof candidate.expiresAt !== "string"

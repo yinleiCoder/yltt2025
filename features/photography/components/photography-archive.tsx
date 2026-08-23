@@ -12,7 +12,7 @@ export function PhotographyArchive({
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <section className="mx-auto w-full max-w-7xl px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
+      <section className="container mx-auto w-full px-5 pb-20 pt-12 sm:px-8 lg:px-12 lg:pt-20">
         <div className="grid gap-8 border-b border-[#d2d2d2] pb-10 lg:grid-cols-[1fr_22rem] lg:items-end">
           <div>
             <p className="font-mono text-[0.7rem] text-[#222222]">
@@ -90,12 +90,17 @@ function PhotographyCard({
             <h2 className="mt-2 font-[family-name:var(--font-editorial)] text-2xl leading-tight">
               {item.title}
             </h2>
+            {item.location ? <p className="mt-2 text-xs text-[#222222]">{formatLocation(item.location)}</p> : null}
           </div>
           <p className="font-mono text-[0.65rem] text-[#222222]">OPEN / VIEW</p>
         </div>
       </Link>
     </article>
   );
+}
+
+function formatLocation(location: NonNullable<PublicPhotographyItem["location"]>) {
+  return "label" in location ? `${location.label} / ${location.city}` : `${location.city} / ${location.region}`;
 }
 
 function formatDate(value: string) {

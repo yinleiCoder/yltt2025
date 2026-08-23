@@ -33,7 +33,7 @@ export default async function AdminPage() {
     const dashboard = await getAdminDashboardData();
 
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="container mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-6">
           <div>
             <p className="text-sm text-muted-foreground">YlTt2025</p>

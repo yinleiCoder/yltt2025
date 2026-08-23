@@ -13,7 +13,7 @@ export function PhotographyDetail({
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <article className="mx-auto w-full max-w-7xl bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
+      <article className="container mx-auto w-full bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
         <Link
           className="font-mono text-[0.7rem] text-[#222222] transition-colors hover:bg-[#FFF083] hover:text-[#222222]"
           href="/photography"

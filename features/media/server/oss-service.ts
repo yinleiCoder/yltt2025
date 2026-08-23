@@ -23,12 +23,13 @@ type UploadSignatureInput = {
 
 export type UploadSignature = {
   kind: MediaKind;
+  mimeType: string;
   objectKey: string;
   uploadUrl: string;
   expiresAt: string;
 };
 
-export type AvatarUploadSignature = Omit<UploadSignature, "kind"> & {
+export type AvatarUploadSignature = Omit<UploadSignature, "kind" | "mimeType"> & {
   fields: Record<string, string>;
 };
 
@@ -62,6 +63,7 @@ export function issueOssUploadSignature(input: UploadSignatureInput, target: Con
 
   return {
     kind: upload.kind,
+    mimeType: upload.mimeType,
     objectKey,
     uploadUrl: client.signatureUrl(objectKey, {
       method: "PUT",

@@ -2,11 +2,11 @@ import { z } from "zod";
 
 const objectKeySchema = z
   .string()
-  .regex(/^(photos|videos)\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|mp4)$/i, {
+  .regex(/^(photos|videos)\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|heic|heif|mp4|mov|m4v)$/i, {
     message: "Enter a valid media object key.",
   });
 
-const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp)$/i);
+const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|heic|heif)$/i);
 
 const draftSchema = z
   .object({
@@ -27,6 +27,10 @@ const draftSchema = z
     cameraModel: z.string().max(100).optional(),
     lens: z.string().max(160).optional(),
     capturedAt: z.string().datetime().optional(),
+    occurredAt: z.string().datetime().optional(),
+    durationSeconds: z.number().int().positive().optional(),
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
     locationVisibility: z.enum(["precise", "city", "hidden"]).default("hidden"),
     locationLabel: z.string().trim().max(200).optional(),
     city: z.string().trim().max(100).optional(),
@@ -45,6 +49,10 @@ const draftSchema = z
 
     if (draft.kind !== "story" && draft.storyImageObjectKeys.length) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ["storyImageObjectKeys"], message: "Story image object keys are only valid for stories." });
+    }
+
+    if (draft.kind === "story" && !draft.occurredAt) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["occurredAt"], message: "A story occurrence date is required." });
     }
 
     if (draft.locationVisibility === "city" && (!draft.city || !draft.region)) {

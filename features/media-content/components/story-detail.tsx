@@ -14,7 +14,7 @@ export function StoryDetail({
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <article className="mx-auto w-full max-w-7xl bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
+      <article className="container mx-auto w-full bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
         <div className="mx-auto max-w-4xl">
           <Link
             className="font-mono text-[0.7rem] text-[#222222] transition-colors hover:bg-[#FFF083] hover:text-[#222222]"
@@ -24,7 +24,7 @@ export function StoryDetail({
           </Link>
           <header className="mt-12 border-b border-[#d2d2d2] pb-8">
             <p className="font-mono text-[0.7rem] text-[#222222]">
-              STORY / {formatDate(story.publishedAt)}
+              STORY / {formatDate(story.occurredAt ?? story.publishedAt)}
             </p>
             <h1 className="mt-4 font-[family-name:var(--font-editorial)] text-5xl leading-[1.02] sm:text-7xl">
               {story.title}
@@ -35,6 +35,7 @@ export function StoryDetail({
               </p>
             ) : null}
           </header>
+          {story.location ? <p className="mt-5 font-mono text-xs text-[#222222]">地点 / {formatLocation(story.location)}</p> : null}
           <StoryMarkdown
             className="typeset typeset-docs mt-10 max-w-full text-[#222222]"
             emptyMessage="还没有正文。"
@@ -47,6 +48,10 @@ export function StoryDetail({
       </article>
     </main>
   );
+}
+
+function formatLocation(location: NonNullable<PublicStoryItem["location"]>) {
+  return "label" in location ? `${location.label} / ${location.city}` : `${location.city} / ${location.region}`;
 }
 
 function formatDate(value: string) {

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,8 +16,10 @@ import {
   ContentMediaUploadError,
   readContentPhotoExif,
   uploadContentMedia,
+  type UploadProgressHandler,
 } from "@/features/admin/components/media-upload";
 import { readPhotoExif } from "@/features/media/client/read-photo-exif";
+import { readVideoMetadata, type VideoMetadata } from "@/features/media/client/read-video-metadata";
 import {
   hasPhotoGps,
   mapPhotoExifToFormValues,
@@ -56,6 +59,7 @@ export type ContentFormInitialValues = {
   objectKey?: string | null;
   isFeatured?: boolean;
   publishedAt?: string | null;
+  occurredAt?: string | null;
   locationVisibility?: "precise" | "city" | "hidden";
   locationLabel?: string | null;
   city?: string | null;
@@ -72,6 +76,13 @@ export type ContentFormInitialValues = {
     iso: number | null;
     focalLengthMm: number | null;
     capturedAt: string | null;
+  } | null;
+  video?: {
+    objectKey: string;
+    durationSeconds: number | null;
+    width: number | null;
+    height: number | null;
+    codec: string;
   } | null;
 };
 
@@ -92,8 +103,16 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   const [locationVisibility, setLocationVisibility] = useState<NonNullable<ContentFormInitialValues["locationVisibility"]>>(initialValues?.locationVisibility ?? "hidden");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [exifError, setExifError] = useState<string | null>(null);
   const [exifStatus, setExifStatus] = useState<string | null>(null);
+  const [videoMetadata, setVideoMetadata] = useState<VideoMetadata | null>(() => {
+    const video = initialValues?.video;
+    if (!video?.durationSeconds || !video.width || !video.height) return null;
+    return { durationSeconds: video.durationSeconds, width: video.width, height: video.height };
+  });
+  const [videoMetadataStatus, setVideoMetadataStatus] = useState<string | null>(null);
+  const [videoMetadataPending, setVideoMetadataPending] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [storyImagesPending, setStoryImagesPending] = useState(false);
@@ -122,8 +141,24 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     setExifError(null);
     setExifStatus(null);
     setLocationStatus(null);
+    setVideoMetadata(null);
+    setVideoMetadataStatus(null);
+    setVideoMetadataPending(false);
 
-    if (!file || kind !== "photo") return;
+    if (!file) return;
+
+    if (kind === "video") {
+      setVideoMetadataPending(true);
+      try {
+        setVideoMetadata(await readVideoMetadata(file));
+        setVideoMetadataStatus("已读取视频时长和画面尺寸。");
+      } catch {
+        setVideoMetadataStatus("无法读取视频元数据，保存后将显示为空。");
+      } finally {
+        setVideoMetadataPending(false);
+      }
+      return;
+    }
 
     const exifToastId = toast.loading("正在读取照片信息...");
 
@@ -177,7 +212,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
             region: place.region ?? current.region,
           }));
         }
-      setLocationStatus(place ? "已获取当前位置并解析地点，请确认后再提交。" : "已获取坐标，但地点名称解析失败，请手动填写。");
+        setLocationStatus(place ? "已获取当前位置并解析地点，请确认后再提交。" : "已获取坐标，但地点名称解析失败，请手动填写。");
         toast.success("位置坐标已获取，请确认地点。", { id: locationToastId });
       } else if (resolution.source === "ip") {
         setLocationVisibility("city");
@@ -203,7 +238,6 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     setKind(nextKind);
     if (nextKind === "story") {
       setMediaFile(null);
-      setLocationVisibility("hidden");
     }
   }
 
@@ -213,7 +247,10 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       try {
         setUploadError(null);
         if (kind !== "story" && mediaFile) {
-          formData.set("objectKey", await uploadContentMedia(mediaFile));
+          const onProgress: UploadProgressHandler = (value) => setUploadProgress(value);
+          setUploadProgress(0);
+          const uploadedObjectKey = await uploadContentMedia(mediaFile, fetch, "media", onProgress);
+          formData.set("objectKey", uploadedObjectKey);
         }
 
         if (kind !== "story" && !formData.get("objectKey")) {
@@ -226,6 +263,8 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
         const message = error instanceof ContentMediaUploadError ? error.message : "媒体上传失败，请稍后重试。";
         setUploadError(message);
         toast.error(message, { id: uploadToastId });
+      } finally {
+        setUploadProgress(null);
       }
     });
   }
@@ -234,6 +273,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
     <form aria-busy={isPending || isUploading || isSubmitting} className="grid max-w-3xl gap-6 py-8" onSubmit={(event) => { event.preventDefault(); uploadAndSubmit(new FormData(event.currentTarget)); }}>
       {initialValues?.id ? <input name="id" type="hidden" value={initialValues.id} /> : null}
       {isEdit ? <input name="kind" type="hidden" value={kind} /> : null}
+      {kind === "story" ? <section aria-labelledby="story-settings-title" className="grid gap-4 rounded-lg border bg-muted/10 p-4"><div className="grid gap-1"><h2 className="text-sm font-medium" id="story-settings-title">故事设置</h2><FieldDescription>选择故事发生日期，公开故事会按这个日期从近到远排列。</FieldDescription></div><Field><FieldLabel htmlFor="occurredAt">故事发生日期</FieldLabel><Input defaultValue={toDateInputValue(initialValues?.occurredAt)} id="occurredAt" name="occurredAt" type="date" required /></Field></section> : null}
       <FieldGroup className="grid gap-5 md:grid-cols-2">
         <Field><FieldLabel htmlFor="kind">内容类型</FieldLabel><Select disabled={isEdit} name={isEdit ? undefined : "kind"} value={kind} onValueChange={(value) => handleKindChange(value as ContentFormInitialValues["kind"])}><SelectTrigger id="kind"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="photo">摄影</SelectItem><SelectItem value="video">短片</SelectItem><SelectItem value="story">故事</SelectItem></SelectContent></Select></Field>
         <Field><FieldLabel htmlFor="title">标题</FieldLabel><Input defaultValue={initialValues?.title ?? ""} id="title" name="title" required /></Field>
@@ -250,7 +290,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
           <StoryImageUpload initialImages={initialValues?.storyImages ?? []} onPendingChange={setStoryImagesPending} />
         </section>
       </> : null}
-      {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "选择后可点击预览并查看大图。" : "选择后可直接预览视频首帧和控制条。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => setMediaFile(null)} onError={setUploadError} /></Field> : null}
+      {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "支持 JPEG、PNG、WebP、HEIC、HEIF；Live Photo 的静态照片可直接上传。" : "支持 MP4、MOV、M4V，上传后会自动转换为网页兼容视频。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => { setMediaFile(null); setVideoMetadata(null); setVideoMetadataStatus(null); }} onError={setUploadError} />{uploadProgress !== null ? <Progress aria-label="媒体处理和上传进度" value={uploadProgress}><ProgressLabel>{uploadProgress < 35 ? "正在转换媒体" : "正在上传媒体"}</ProgressLabel><ProgressValue /></Progress> : null}</Field> : null}
       {kind === "photo" ? <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2"><label htmlFor="aperture">光圈（f 值）</label><Input id="aperture" name="aperture" onChange={(event) => updatePhotoValue("aperture", event.target.value)} placeholder="例如 2.8" type="number" step="0.1" value={photoValues.aperture ?? ""} /></div>
         <div className="grid gap-2"><label htmlFor="shutterSpeed">快门速度</label><Input id="shutterSpeed" name="shutterSpeed" onChange={(event) => updatePhotoValue("shutterSpeed", event.target.value)} placeholder="例如 1/250" value={photoValues.shutterSpeed ?? ""} /></div>
@@ -261,6 +301,8 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
         <div className="grid gap-2 sm:col-span-2"><label htmlFor="lens">镜头</label><Input id="lens" name="lens" onChange={(event) => updatePhotoValue("lens", event.target.value)} placeholder="例如 RF 35mm F1.8" value={photoValues.lens ?? ""} /></div>
       </div> : null}
       {kind === "photo" ? <div className="grid gap-2"><label htmlFor="capturedAt">拍摄时间（ISO 8601）</label><Input id="capturedAt" name="capturedAt" onChange={(event) => updatePhotoValue("capturedAt", event.target.value)} placeholder="例如 2026-08-20T08:30:00Z" type="text" value={photoValues.capturedAt ?? ""} /></div> : null}
+      {kind === "video" && videoMetadata ? <div className="grid gap-2"><p className="text-sm text-muted-foreground">视频信息：{videoMetadata.durationSeconds} 秒 · {videoMetadata.width} × {videoMetadata.height}</p><input name="durationSeconds" type="hidden" value={videoMetadata.durationSeconds} /><input name="width" type="hidden" value={videoMetadata.width} /><input name="height" type="hidden" value={videoMetadata.height} /></div> : null}
+      {videoMetadataStatus ? <p aria-live="polite" className="text-sm text-muted-foreground">{videoMetadataStatus}</p> : null}
       <div className="grid gap-4 border-t pt-5">
         <Field><FieldLabel htmlFor="locationVisibility">地点公开范围</FieldLabel><Select name="locationVisibility" value={locationVisibility} onValueChange={(value) => setLocationVisibility(value as NonNullable<ContentFormInitialValues["locationVisibility"]>)}><SelectTrigger id="locationVisibility"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="hidden">不公开</SelectItem><SelectItem value="city">仅城市和地区</SelectItem><SelectItem value="precise">公开精确地点</SelectItem></SelectContent></Select></Field>
         {locationVisibility !== "hidden" ? <Button className="w-fit" disabled={isLocating} type="button" variant="outline" onClick={() => void useCurrentLocation()}>{isLocating ? "正在获取位置" : "一键获取地理位置"}</Button> : null}
@@ -275,7 +317,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
         </div> : null}
         {locationStatus ? <Alert aria-live="polite"><AlertDescription>{locationStatus}</AlertDescription></Alert> : null}
       </div>
-      <input name="objectKey" type="hidden" value={initialValues?.objectKey ?? initialValues?.photo?.objectKey ?? ""} />
+      <input name="objectKey" type="hidden" value={initialValues?.objectKey ?? initialValues?.photo?.objectKey ?? initialValues?.video?.objectKey ?? ""} />
       <div className="grid gap-3 sm:grid-cols-2"><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="publishNow">立即发布</FieldLabel><Switch defaultChecked={Boolean(initialValues?.publishedAt)} id="publishNow" name="publishNow" /></Field><Field orientation="horizontal" className="items-center justify-between rounded-lg border px-3 py-2.5"><FieldLabel htmlFor="isFeatured">在首页精选展示</FieldLabel><Switch defaultChecked={Boolean(initialValues?.isFeatured)} id="isFeatured" name="isFeatured" /></Field></div>
       {state.error ? <p className="text-sm text-destructive" role="alert">{state.error}</p> : null}
       {uploadError ? <p className="text-sm text-destructive" role="alert">{uploadError}</p> : null}
@@ -283,7 +325,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       {exifStatus ? <p aria-live="polite" className="text-sm text-muted-foreground">{exifStatus}</p> : null}
       {state.warning ? <p aria-live="polite" className="text-sm text-muted-foreground">{state.warning}</p> : null}
       {state.success ? <p aria-live="polite" className="text-sm">{state.success}{state.publicPath ? <> {" "}<Link className="underline underline-offset-4" href={state.publicPath}>查看公开页面</Link></> : null}</p> : null}
-      <Button disabled={isPending || isUploading || isSubmitting || storyImagesPending} type="submit">{isUploading ? "正在上传" : isPending || isSubmitting ? isEdit ? "正在更新" : "正在创建" : isEdit ? "保存修改" : "创建内容"}</Button>
+      <Button disabled={isPending || isUploading || isSubmitting || storyImagesPending || videoMetadataPending} type="submit">{videoMetadataPending ? "正在读取视频信息" : isUploading ? "正在上传" : isPending || isSubmitting ? isEdit ? "正在更新" : "正在创建" : isEdit ? "保存修改" : "创建内容"}</Button>
     </form>
   );
 }
@@ -302,4 +344,8 @@ function mapInitialPhotoValues(initialValues?: ContentFormInitialValues): PhotoE
     latitude: initialValues.latitude ?? undefined,
     longitude: initialValues.longitude ?? undefined,
   });
+}
+
+function toDateInputValue(value?: string | null) {
+  return value ? value.slice(0, 10) : "";
 }

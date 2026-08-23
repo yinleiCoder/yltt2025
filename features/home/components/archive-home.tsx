@@ -33,7 +33,7 @@ export function ArchiveHome({ archive }: ArchiveHomeProps) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]" id="home-archive">
       <HomeArchiveMotion />
-      <section className="mx-auto grid w-full max-w-7xl gap-10 px-5 pb-18 pt-10 sm:px-8 lg:grid-cols-12 lg:gap-14 lg:px-12 lg:pb-24 lg:pt-16">
+      <section className="container mx-auto grid w-full gap-10 px-5 pb-18 pt-10 sm:px-8 lg:grid-cols-12 lg:gap-14 lg:px-12 lg:pb-24 lg:pt-16">
         <div className="flex flex-col justify-between lg:col-span-5">
           <div>
             <p className="font-mono text-[0.7rem] leading-5 text-[#222222]">YLTT2025 / 私人影像档案</p>
@@ -118,7 +118,7 @@ function EmptyHero({ hasMediaConfiguration }: { hasMediaConfiguration: boolean }
 function ArchiveSection({ items }: { items: HomepageArchiveItem[] }) {
   return (
     <section id="archive">
-      <div className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
+      <div className="container mx-auto w-full px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
         <div className="flex flex-col justify-between gap-4 border-b border-[#d2d2d2] pb-7 sm:flex-row sm:items-end">
           <div>
             <p className="font-mono text-[0.7rem] text-[#222222]">影像接触表</p>
@@ -153,7 +153,7 @@ function ArchiveCard({ className, item }: { className: string; item: HomepageArc
       {media?.previewUrl ? (
         <img
           alt={media.type === "photo" ? media.altText ?? item.title : `${item.title} 的视频封面`}
-          className="absolute inset-0 h-full w-full object-cover opacity-85 transition-[transform,opacity] duration-700 group-hover:scale-[1.025] group-hover:opacity-100"
+          className="absolute inset-0 h-full w-full object-cover opacity-85 transition-all duration-700 group-hover:scale-[1.025] group-hover:opacity-100"
           decoding="async"
           height={media.height ?? 720}
           loading="lazy"
@@ -166,7 +166,7 @@ function ArchiveCard({ className, item }: { className: string; item: HomepageArc
       <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,rgba(8,8,8,0.92),rgba(8,8,8,0))] px-4 pb-4 pt-14">
         <p className="font-mono text-[0.65rem] text-[#c4c4c4]">{formatKind(item.kind)} / {formatDate(item.publishedAt)}</p>
         <h3 className="mt-2 font-[family-name:var(--font-editorial)] text-2xl leading-tight">{item.title}</h3>
-        <div className="mt-3 translate-y-2 opacity-0 transition-[transform,opacity] duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="mt-3 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <ArchiveIndex compact item={item} />
         </div>
       </div>

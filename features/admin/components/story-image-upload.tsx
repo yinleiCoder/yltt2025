@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDropzone, type Accept } from "react-dropzone";
 
 import { Button } from "@/components/ui/button";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { PhotoLightbox } from "@/features/media/components/photo-lightbox";
 import { uploadContentMedia } from "@/features/admin/components/media-upload";
 
@@ -24,6 +25,10 @@ const imageAccept: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
   "image/webp": [".webp"],
+  "image/heic": [".heic"],
+  "image/heif": [".heif"],
+  "image/heic-sequence": [".heic"],
+  "image/heif-sequence": [".heif"],
 };
 
 export function StoryImageUpload({
@@ -41,13 +46,14 @@ export function StoryImageUpload({
   })));
   const itemsRef = useRef(items);
   const [pending, setPending] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: imageAccept,
     multiple: true,
     noClick: true,
     onDropAccepted: (files) => void addFiles(files),
-    onDropRejected: () => setError("请选择 JPEG、PNG 或 WebP 图片。"),
+    onDropRejected: () => setError("请选择 JPEG、PNG、WebP、HEIC 或 HEIF 图片。"),
   });
 
   useEffect(() => { itemsRef.current = items; }, [items]);
@@ -58,16 +64,30 @@ export function StoryImageUpload({
     setError(null);
     setPending(true);
     const added: StoryImageItem[] = [];
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    let completedBytes = 0;
+    const updateProgress = (value: number) => {
+      const currentFile = files[added.length];
+      if (!currentFile || totalBytes === 0) return;
+      const aggregate = ((completedBytes + (currentFile.size * value) / 100) / totalBytes) * 100;
+      setProgress(Math.min(100, Math.round(aggregate)));
+    };
+    setProgress(0);
     try {
       for (const file of files) {
-        const objectKey = await uploadContentMedia(file, fetch, "story-image");
+        const objectKey = await uploadContentMedia(file, fetch, "story-image", updateProgress);
         added.push({ objectKey, previewUrl: URL.createObjectURL(file), isObjectUrl: true, fileName: file.name });
+        completedBytes += file.size;
       }
       setItems((current) => [...current, ...added]);
     } catch (uploadError) {
+      added.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
       setError(uploadError instanceof Error ? uploadError.message : "图片上传失败，请稍后重试。");
     } finally {
       setPending(false);
+      setProgress(null);
     }
   }
 
@@ -95,6 +115,7 @@ export function StoryImageUpload({
           <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(item.objectKey)}>移除</Button>
         </div>)}
       </div> : null}
+      {progress !== null ? <Progress aria-label="故事图集上传进度" value={progress}><ProgressLabel>正在上传图集</ProgressLabel><ProgressValue /></Progress> : null}
       {pending ? <p aria-live="polite" className="text-xs text-muted-foreground">正在上传图片...</p> : null}
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     </div>

@@ -13,7 +13,7 @@ export function VideoDetail({
 }) {
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
-      <article className="mx-auto w-full max-w-7xl bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
+      <article className="container mx-auto w-full bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
         <Link
           className="font-mono text-[0.7rem] text-[#222222] transition-colors hover:bg-[#FFF083] hover:text-[#222222]"
           href="/videos"
@@ -40,6 +40,7 @@ export function VideoDetail({
                 {video.excerpt}
               </p>
             ) : null}
+            {video.location ? <p className="mt-5 font-mono text-xs text-[#222222]">地点 / {formatLocation(video.location)}</p> : null}
             <dl className="mt-10 divide-y divide-[#d9d9d4] border-y border-[#d9d9d4] font-mono text-xs">
               <IndexRow
                 label="DURATION"
@@ -49,7 +50,7 @@ export function VideoDetail({
                     : null
                 }
               />
-              <IndexRow label="FORMAT" value="H.264 / AAC MP4" />
+              <IndexRow label="FORMAT" value={formatCodec(video.videoDetails.codec)} />
               <IndexRow
                 label="FRAME"
                 value={
@@ -65,6 +66,14 @@ export function VideoDetail({
       </article>
     </main>
   );
+}
+
+function formatLocation(location: NonNullable<PublicVideoItem["location"]>) {
+  return "label" in location ? `${location.label} / ${location.city}` : `${location.city} / ${location.region}`;
+}
+
+function formatCodec(codec: string | null | undefined) {
+  return codec ? codec.toUpperCase() : null;
 }
 
 function IndexRow({ label, value }: { label: string; value: string | null }) {

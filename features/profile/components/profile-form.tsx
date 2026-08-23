@@ -18,6 +18,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -89,6 +90,7 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
     previewUrl: initialValues.avatarUrl,
   });
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState<number | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ProfileFormFieldErrors>({});
   const [isSubmissionLocked, setIsSubmissionLocked] = useState(false);
@@ -153,7 +155,8 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
         let objectKey = existingAvatarObjectKey;
 
         if (selectedAvatarFile) {
-          objectKey = await uploadAvatar(selectedAvatarFile);
+          setAvatarUploadProgress(0);
+          objectKey = await uploadAvatar(selectedAvatarFile, setAvatarUploadProgress);
           setAvatarSelection((current) => ({ ...current, objectKey }));
         }
 
@@ -164,6 +167,7 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
         toast.error(message);
         setAvatarError(message);
       } finally {
+        setAvatarUploadProgress(null);
         setIsSubmissionLocked(false);
       }
     });
@@ -207,6 +211,7 @@ export function ProfileForm({ initialValues }: { initialValues: ProfileFormValue
                 type="file"
               />
               <FieldDescription>支持 JPEG、PNG、WebP，文件不超过 5 MB。</FieldDescription>
+              {avatarUploadProgress !== null ? <Progress aria-label="头像上传进度" value={avatarUploadProgress}><ProgressLabel>正在上传头像</ProgressLabel><ProgressValue /></Progress> : null}
               {avatarError ? <FieldError id={avatarErrorId}>{avatarError}</FieldError> : null}
             </FieldContent>
           </Field>
@@ -414,7 +419,7 @@ function VisibilitySwitch({
   );
 }
 
-async function uploadAvatar(file: File): Promise<string> {
+async function uploadAvatar(file: File, onProgress?: (percentage: number) => void): Promise<string> {
   let signatureResponse: Response;
   try {
     signatureResponse = await fetch("/api/profile/avatar/upload-signature", {
@@ -439,7 +444,9 @@ async function uploadAvatar(file: File): Promise<string> {
   uploadData.set("file", file);
 
   try {
-    const uploadResponse = await fetch(payload.uploadUrl, { method: "POST", body: uploadData });
+    const uploadResponse = onProgress
+      ? await uploadAvatarWithProgress(payload.uploadUrl, uploadData, onProgress)
+      : await fetch(payload.uploadUrl, { method: "POST", body: uploadData });
     if (!uploadResponse.ok) throw new AvatarUploadError("头像上传失败，请稍后重试。");
   } catch (error) {
     if (error instanceof AvatarUploadError) throw error;
@@ -447,6 +454,19 @@ async function uploadAvatar(file: File): Promise<string> {
   }
 
   return payload.objectKey;
+}
+
+function uploadAvatarWithProgress(uploadUrl: string, body: FormData, onProgress: (percentage: number) => void): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", uploadUrl);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    request.onload = () => resolve(new Response(null, { status: request.status }));
+    request.onerror = () => reject(new Error("upload failed"));
+    request.send(body);
+  });
 }
 
 async function readAvatarSignaturePayload(response: Response): Promise<unknown> {

@@ -7,6 +7,37 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const contentIdPattern = /^[0-9a-f-]{36}$/i;
 
+export type AdminContentListItem = {
+  id: string;
+  title: string;
+  slug: string;
+  kind: "photo" | "video" | "story";
+  publishedAt: string | null;
+  occurredAt: string | null;
+  updatedAt: string;
+};
+
+export async function getAdminContentItems(): Promise<AdminContentListItem[]> {
+  await requireAdministrator();
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("content_items")
+    .select("id, title, slug, kind, published_at, occurred_at, updated_at")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error("加载内容列表失败。");
+
+  return (data ?? []).map((item) => ({
+    id: item.id as string,
+    title: item.title as string,
+    slug: item.slug as string,
+    kind: item.kind as AdminContentListItem["kind"],
+    publishedAt: item.published_at as string | null,
+    occurredAt: item.occurred_at as string | null,
+    updatedAt: item.updated_at as string,
+  }));
+}
+
 export type AdminContentItem = {
   id: string;
   kind: "photo" | "video" | "story";
@@ -17,6 +48,7 @@ export type AdminContentItem = {
   coverObjectKey: string | null;
   isFeatured: boolean;
   publishedAt: string | null;
+  occurredAt: string | null;
   locationVisibility: "precise" | "city" | "hidden";
   locationLabel: string | null;
   city: string | null;
@@ -37,6 +69,8 @@ export type AdminContentItem = {
   video: {
     objectKey: string;
     durationSeconds: number | null;
+    width: number | null;
+    height: number | null;
     codec: string;
   } | null;
   storyImages: { objectKey: string; sortOrder: number; imageUrl: string | null }[];
@@ -57,6 +91,7 @@ export async function createAdminContentItem(draft: AdminContentDraft) {
       cover_object_key: draft.objectKey || null,
       is_featured: draft.isFeatured,
       published_at: draft.publishNow ? new Date().toISOString() : null,
+      occurred_at: draft.kind === "story" ? draft.occurredAt ?? null : null,
       location_visibility: draft.locationVisibility,
       location_label: draft.locationVisibility === "precise" ? draft.locationLabel ?? null : null,
       city: draft.locationVisibility === "hidden" ? null : draft.city ?? null,
@@ -107,6 +142,9 @@ export async function createAdminContentItem(draft: AdminContentDraft) {
         content_id: item.id,
         object_key: objectKey,
         codec: "h264/aac",
+        duration_seconds: draft.durationSeconds ?? null,
+        width: draft.width ?? null,
+        height: draft.height ?? null,
       });
 
   if (detailsResult.error) {
@@ -135,6 +173,7 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
       cover_object_key,
       is_featured,
       published_at,
+      occurred_at,
       location_visibility,
       location_label,
       city,
@@ -142,7 +181,7 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
       latitude,
       longitude,
       photo_details (object_key, camera_make, camera_model, lens, aperture, shutter_speed, iso, focal_length_mm, captured_at),
-      video_details (object_key, duration_seconds, codec),
+      video_details (object_key, duration_seconds, width, height, codec),
       story_images (object_key, sort_order)
     `)
     .eq("id", id)
@@ -166,6 +205,7 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
     coverObjectKey: data.cover_object_key as string | null,
     isFeatured: Boolean(data.is_featured),
     publishedAt: data.published_at as string | null,
+    occurredAt: data.occurred_at as string | null,
     locationVisibility: data.location_visibility as "precise" | "city" | "hidden",
     locationLabel: data.location_label as string | null,
     city: data.city as string | null,
@@ -186,6 +226,8 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
     video: video ? {
       objectKey: video.object_key as string,
       durationSeconds: video.duration_seconds as number | null,
+      width: video.width as number | null,
+      height: video.height as number | null,
       codec: video.codec as string,
     } : null,
     storyImages: storyImages.map((image) => ({
@@ -222,6 +264,7 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
       cover_object_key: nextObjectKey,
       is_featured: draft.isFeatured,
       published_at: publishedAt,
+      occurred_at: draft.kind === "story" ? draft.occurredAt ?? null : null,
       location_visibility: draft.locationVisibility,
       location_label: draft.locationVisibility === "precise" ? draft.locationLabel ?? null : null,
       city: draft.locationVisibility === "hidden" ? null : draft.city ?? null,
@@ -235,50 +278,111 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
     throw new Error("更新内容失败。");
   }
 
-  if (draft.kind === "photo") {
-    const { error } = await supabase.from("photo_details").upsert({
-      content_id: id,
-      object_key: draft.objectKey,
-      aperture: draft.aperture ?? null,
-      shutter_speed: draft.shutterSpeed ?? null,
-      iso: draft.iso ?? null,
-      focal_length_mm: draft.focalLengthMm ?? null,
-      camera_make: draft.cameraMake ?? null,
-      camera_model: draft.cameraModel ?? null,
-      lens: draft.lens ?? null,
-      captured_at: draft.capturedAt ?? null,
-    }, { onConflict: "content_id" });
-    if (error) throw new Error("更新摄影详情失败。");
-  }
-
-  if (draft.kind === "video") {
-    const { error } = await supabase.from("video_details").upsert({
-      content_id: id,
-      object_key: draft.objectKey,
-      codec: "h264/aac",
-    }, { onConflict: "content_id" });
-    if (error) throw new Error("更新视频详情失败。");
-  }
-
-  let cleanupWarning: string | undefined;
-  if (draft.kind === "story") {
-    const previousKeys = new Set(existing.storyImages.map((image) => image.objectKey));
-    const { error } = await supabase.from("story_images").delete().eq("content_id", id);
-    if (error) throw new Error("更新故事图片失败。");
-    if (draft.storyImageObjectKeys.length) {
-      const { error: insertError } = await supabase.from("story_images").insert(draft.storyImageObjectKeys.map((objectKey, sortOrder) => ({ content_id: id, object_key: objectKey, sort_order: sortOrder })));
-      if (insertError) throw new Error("更新故事图片失败。");
+  try {
+    if (draft.kind === "photo") {
+      const { error } = await supabase.from("photo_details").upsert({
+        content_id: id,
+        object_key: draft.objectKey,
+        aperture: draft.aperture ?? null,
+        shutter_speed: draft.shutterSpeed ?? null,
+        iso: draft.iso ?? null,
+        focal_length_mm: draft.focalLengthMm ?? null,
+        camera_make: draft.cameraMake ?? null,
+        camera_model: draft.cameraModel ?? null,
+        lens: draft.lens ?? null,
+        captured_at: draft.capturedAt ?? null,
+      }, { onConflict: "content_id" });
+      if (error) throw new Error("更新摄影详情失败。");
     }
-    const nextKeys = new Set(draft.storyImageObjectKeys);
-    for (const objectKey of previousKeys) if (!nextKeys.has(objectKey)) cleanupWarning = await tryDeleteOssObject(objectKey) ?? cleanupWarning;
+
+    if (draft.kind === "video") {
+      const replacingVideo = draft.objectKey !== existing.video?.objectKey;
+      const { error } = await supabase.from("video_details").upsert({
+        content_id: id,
+        object_key: draft.objectKey,
+        codec: "h264/aac",
+        duration_seconds: replacingVideo ? draft.durationSeconds ?? null : existing.video?.durationSeconds ?? null,
+        width: replacingVideo ? draft.width ?? null : existing.video?.width ?? null,
+        height: replacingVideo ? draft.height ?? null : existing.video?.height ?? null,
+      }, { onConflict: "content_id" });
+      if (error) throw new Error("更新视频详情失败。");
+    }
+
+    let cleanupWarning: string | undefined;
+    if (draft.kind === "story") {
+      const previousKeys = new Set(existing.storyImages.map((image) => image.objectKey));
+      const { error } = await supabase.from("story_images").delete().eq("content_id", id);
+      if (error) throw new Error("更新故事图片失败。");
+      if (draft.storyImageObjectKeys.length) {
+        const { error: insertError } = await supabase.from("story_images").insert(draft.storyImageObjectKeys.map((objectKey, sortOrder) => ({ content_id: id, object_key: objectKey, sort_order: sortOrder })));
+        if (insertError) throw new Error("更新故事图片失败。");
+      }
+      const nextKeys = new Set(draft.storyImageObjectKeys);
+      for (const objectKey of previousKeys) if (!nextKeys.has(objectKey)) cleanupWarning = await tryDeleteOssObject(objectKey) ?? cleanupWarning;
+    }
+
+    const previousObjectKey = existing.photo?.objectKey ?? existing.video?.objectKey ?? existing.coverObjectKey;
+    cleanupWarning = previousObjectKey && previousObjectKey !== nextObjectKey
+      ? await tryDeleteOssObject(previousObjectKey)
+      : cleanupWarning;
+
+    return { cleanupWarning, previousSlug: existing.slug, slug: existing.slug };
+  } catch (error) {
+    await restoreContentUpdate(supabase, existing);
+    throw error;
+  }
+}
+
+async function restoreContentUpdate(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, existing: AdminContentItem) {
+  await supabase.from("content_items").update({
+    title: existing.title,
+    slug: existing.slug,
+    excerpt: existing.excerpt,
+    markdown_body: existing.markdownBody,
+    cover_object_key: existing.coverObjectKey,
+    is_featured: existing.isFeatured,
+    published_at: existing.publishedAt,
+    occurred_at: existing.occurredAt,
+    location_visibility: existing.locationVisibility,
+    location_label: existing.locationLabel,
+    city: existing.city,
+    region: existing.region,
+    latitude: existing.latitude,
+    longitude: existing.longitude,
+  }).eq("id", existing.id);
+
+  if (existing.kind === "photo" && existing.photo) {
+    await supabase.from("photo_details").upsert({
+      content_id: existing.id,
+      object_key: existing.photo.objectKey,
+      camera_make: existing.photo.cameraMake,
+      camera_model: existing.photo.cameraModel,
+      lens: existing.photo.lens,
+      aperture: existing.photo.aperture,
+      shutter_speed: existing.photo.shutterSpeed,
+      iso: existing.photo.iso,
+      focal_length_mm: existing.photo.focalLengthMm,
+      captured_at: existing.photo.capturedAt,
+    }, { onConflict: "content_id" });
   }
 
-  const previousObjectKey = existing.photo?.objectKey ?? existing.video?.objectKey ?? existing.coverObjectKey;
-  cleanupWarning = previousObjectKey && previousObjectKey !== nextObjectKey
-    ? await tryDeleteOssObject(previousObjectKey)
-    : undefined;
+  if (existing.kind === "video" && existing.video) {
+    await supabase.from("video_details").upsert({
+      content_id: existing.id,
+      object_key: existing.video.objectKey,
+      codec: existing.video.codec,
+      duration_seconds: existing.video.durationSeconds,
+      width: existing.video.width,
+      height: existing.video.height,
+    }, { onConflict: "content_id" });
+  }
 
-  return { cleanupWarning, previousSlug: existing.slug, slug: existing.slug };
+  if (existing.kind === "story") {
+    await supabase.from("story_images").delete().eq("content_id", existing.id);
+    if (existing.storyImages.length) {
+      await supabase.from("story_images").insert(existing.storyImages.map(({ objectKey, sortOrder }) => ({ content_id: existing.id, object_key: objectKey, sort_order: sortOrder })));
+    }
+  }
 }
 
 export async function deleteAdminContentItem(id: string) {

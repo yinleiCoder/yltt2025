@@ -30,16 +30,22 @@ function optionalNumber(value: FormDataEntryValue | null | undefined) {
   return text ? Number(text) : undefined;
 }
 
+function optionalDateTime(value: FormDataEntryValue | null | undefined) {
+  const text = optionalText(value);
+  if (!text) return undefined;
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? `${text}T00:00:00.000Z` : text;
+}
+
 export async function createContentAction(
   _previousState: CreateContentState,
   formData: FormData,
 ): Promise<CreateContentState> {
+  let successState: CreateContentState;
   try {
     const draft = parseAdminContentDraft(readDraftFormData(formData));
     const created = await createAdminContentItem(draft);
     revalidateContentPaths(draft.kind, created.slug);
-
-    return {
+    successState = {
       success: draft.publishNow ? "内容已创建并发布。" : "内容已保存为草稿。",
       publicPath: draft.publishNow ? publicPathFor(draft.kind, created.slug) : undefined,
     };
@@ -50,6 +56,9 @@ export async function createContentAction(
 
     return { error: "创建内容失败，请稍后重试。" };
   }
+
+  redirect("/admin/content");
+  return successState;
 }
 
 export async function updateContentAction(
@@ -86,7 +95,7 @@ export async function deleteContentAction(formData: FormData) {
   revalidatePath("/stories");
 
   if (result.warnings.length) revalidatePath(`/admin/content/${id}`);
-  redirect("/admin");
+  redirect("/admin/content");
 }
 
 function readDraftFormData(formData: FormData) {
@@ -108,6 +117,10 @@ function readDraftFormData(formData: FormData) {
     cameraModel: optionalText(readFormValue(formData, "cameraModel")),
     lens: optionalText(readFormValue(formData, "lens")),
     capturedAt: optionalText(readFormValue(formData, "capturedAt")),
+    occurredAt: optionalDateTime(readFormValue(formData, "occurredAt")),
+    durationSeconds: optionalNumber(readFormValue(formData, "durationSeconds")),
+    width: optionalNumber(readFormValue(formData, "width")),
+    height: optionalNumber(readFormValue(formData, "height")),
     locationVisibility: readFormValue(formData, "locationVisibility") ?? "hidden",
     locationLabel: optionalText(readFormValue(formData, "locationLabel")),
     city: optionalText(readFormValue(formData, "city")),

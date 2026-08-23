@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,18 @@ export function AvatarCropDialog({ file, onCancel, onConfirm }: { file: File | n
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [area, setArea] = useState<Area | null>(null);
-  const sourceUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
-  useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
+  useEffect(() => {
+    if (!file) {
+      setSourceUrl(null);
+      return;
+    }
+
+    const nextSourceUrl = URL.createObjectURL(file);
+    setSourceUrl(nextSourceUrl);
+    return () => URL.revokeObjectURL(nextSourceUrl);
+  }, [file]);
 
   async function confirmCrop() {
     if (!sourceUrl || !area) return;

@@ -36,7 +36,7 @@ function publicFields(user: Awaited<ReturnType<typeof listAdminUsers>>[number]) 
 export default async function AdminUsersPage() {
   const users = await listAdminUsers();
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main className="container mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <header className="border-b pb-6">
         <p className="text-sm text-muted-foreground">成员与权限</p>
         <h1 className="mt-1 text-2xl font-semibold">用户管理</h1>

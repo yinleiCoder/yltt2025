@@ -1,6 +1,7 @@
 import {
   toPublicStory,
   toPublicVideo,
+  sortPublicStories,
   type PublicStory,
   type PublicStoryRow,
   type PublicVideo,
@@ -17,12 +18,19 @@ type VideoRecord = {
   title: string;
   excerpt: string | null;
   published_at: string;
+  location_visibility: "precise" | "city" | "hidden";
+  location_label: string | null;
+  city: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
   video_details: RelatedRecord<{
     object_key: string;
     poster_object_key: string | null;
     duration_seconds: number | null;
     width: number | null;
     height: number | null;
+    codec: string | null;
   }> | null;
 };
 
@@ -33,6 +41,13 @@ type StoryRecord = {
   excerpt: string | null;
   markdown_body: string | null;
   published_at: string;
+  occurred_at: string | null;
+  location_visibility: "precise" | "city" | "hidden";
+  location_label: string | null;
+  city: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
   story_images: RelatedRecord<{ object_key: string; sort_order: number }>;
 };
 
@@ -58,16 +73,23 @@ const videoSelect = `
   title,
   excerpt,
   published_at,
+  location_visibility,
+  location_label,
+  city,
+  region,
+  latitude,
+  longitude,
   video_details (
     object_key,
     poster_object_key,
     duration_seconds,
     width,
-    height
+    height,
+    codec
   )
 `;
 
-const storySelect = "id, slug, title, excerpt, markdown_body, published_at, story_images (object_key, sort_order)";
+const storySelect = "id, slug, title, excerpt, markdown_body, published_at, occurred_at, location_visibility, location_label, city, region, latitude, longitude, story_images (object_key, sort_order)";
 
 export async function getPublicVideos(): Promise<PublicVideoArchive> {
   const mediaBaseUrl = getPublicMediaBaseUrl();
@@ -116,6 +138,7 @@ export async function getPublicStories(): Promise<PublicStoryArchive> {
     .eq("kind", "story")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
+    .order("occurred_at", { ascending: false, nullsFirst: false })
     .order("published_at", { ascending: false })
     .order("sort_order", { ascending: true, foreignTable: "story_images" })
     .limit(48);
@@ -126,6 +149,7 @@ export async function getPublicStories(): Promise<PublicStoryArchive> {
 
 export async function getPublicStoryBySlug(slug: string): Promise<PublicStoryItem | null> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !hasPublicSupabaseEnvironment()) return null;
+  const mediaBaseUrl = getPublicMediaBaseUrl();
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("content_items")
@@ -152,12 +176,19 @@ function toVideoItems(records: VideoRecord[] | null, mediaBaseUrl: string | null
       title: record.title,
       excerpt: record.excerpt,
       publishedAt: record.published_at,
+      locationVisibility: record.location_visibility,
+      locationLabel: record.location_label,
+      city: record.city,
+      region: record.region,
+      latitude: record.latitude,
+      longitude: record.longitude,
       videoDetails: {
         objectKey: details.object_key,
         posterObjectKey: details.poster_object_key,
         durationSeconds: details.duration_seconds,
         width: details.width,
         height: details.height,
+        codec: details.codec,
       },
     };
 
@@ -174,19 +205,25 @@ function toVideoItems(records: VideoRecord[] | null, mediaBaseUrl: string | null
 }
 
 function toStoryItems(records: StoryRecord[] | null, mediaBaseUrl: string | null): PublicStoryItem[] {
-  return (records ?? []).map((record) => {
-    const row: PublicStoryRow = {
+  const rows = (records ?? []).map((record) => {
+    return {
       id: record.id,
       slug: record.slug,
       title: record.title,
       excerpt: record.excerpt,
       publishedAt: record.published_at,
+      occurredAt: record.occurred_at,
+      locationVisibility: record.location_visibility,
+      locationLabel: record.location_label,
+      city: record.city,
+      region: record.region,
+      latitude: record.latitude,
+      longitude: record.longitude,
       markdownBody: record.markdown_body ?? "",
       images: (Array.isArray(record.story_images) ? record.story_images : record.story_images ? [record.story_images] : [])
         .sort((left, right) => left.sort_order - right.sort_order)
         .map((image) => ({ objectKey: image.object_key, imageUrl: mediaBaseUrl ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: image.object_key, imageWidth: 1800 }) : null })),
-    };
-    return toPublicStory(row);
+    } satisfies PublicStoryRow;
   });
+  return sortPublicStories(rows).map((row) => toPublicStory(row));
 }
-  const mediaBaseUrl = getPublicMediaBaseUrl();

@@ -6,9 +6,9 @@ import { PublicAuthControls } from "@/features/auth/components/public-auth-contr
 
 export function SiteHeader() {
   return (
-    <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12 sticky top-0 bg-[rgb(233,233,233)] z-50">
+    <header className="container mx-auto flex w-full items-center justify-between px-5 py-5 sm:px-8 lg:px-12 sticky top-0 bg-[rgb(233,233,233)] z-50">
       <Link
-        className="font-mono text-xs font-medium tracking-[0.18em]"
+        className="font-mono text-xs font-extrabold tracking-[0.18em]"
         href="/"
       >
         YlTt's 2025

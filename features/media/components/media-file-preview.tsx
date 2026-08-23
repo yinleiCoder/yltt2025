@@ -10,7 +10,9 @@ import { PhotoLightbox } from "@/features/media/components/photo-lightbox";
 export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "photo" | "video"; onFile: (file: File) => void; onClear: () => void; onError?: (message: string) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const accept: Accept = kind === "photo" ? { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] } : { "video/mp4": [".mp4"] };
+  const accept: Accept = kind === "photo"
+    ? { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/heic": [".heic"], "image/heif": [".heif"], "image/heic-sequence": [".heic"], "image/heif-sequence": [".heif"] }
+    : { "video/mp4": [".mp4"], "video/quicktime": [".mov"], "video/x-m4v": [".m4v"] };
 
   useEffect(() => {
     if (!file) { setPreviewUrl(null); return; }
@@ -24,7 +26,7 @@ export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "ph
     multiple: false,
     noClick: true,
     onDropAccepted: ([nextFile]) => { if (nextFile) { setFile(nextFile); onFile(nextFile); } },
-    onDropRejected: () => { const message = kind === "photo" ? "请选择 JPEG、PNG 或 WebP 图片。" : "请选择 MP4 视频。"; onError?.(message); },
+    onDropRejected: () => { const message = kind === "photo" ? "请选择 JPEG、PNG、WebP、HEIC 或 HEIF 图片。" : "请选择 MP4、MOV 或 M4V 视频。"; onError?.(message); },
   });
 
   function clearFile() {
