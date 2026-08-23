@@ -27,6 +27,16 @@ describe("受信任的应用地址", () => {
     expect(() => getTrustedAppOrigin()).toThrow("SITE_URL");
   });
 
+  it("生产环境缺少 SITE_URL 时使用 Vercel 部署地址", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_URL", undefined);
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", undefined);
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "yltt2025.vercel.app");
+    vi.stubEnv("VERCEL_URL", "yltt2025.vercel.app");
+
+    expect(getTrustedAppOrigin()).toBe("https://yltt2025.vercel.app");
+  });
+
   it("生产环境拒绝非 HTTPS 的站点地址", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("SITE_URL", "http://yltt.example.cn");

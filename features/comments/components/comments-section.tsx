@@ -1,10 +1,21 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -175,18 +186,11 @@ export function CommentsSection({
                       {isMutating ? "保存中..." : "保存"}
                     </Button>
                   </form>
-                  <form
-                    action={handleDeleteComment}
-                    onSubmit={(event) => {
-                      if (!window.confirm("确认删除这条评论吗？"))
-                        event.preventDefault();
-                    }}
-                  >
-                    <input name="commentId" type="hidden" value={comment.id} />
-                    <Button disabled={isPending || isMutating} size="sm" type="submit" variant="ghost">
-                      {isMutating ? "删除中..." : "删除"}
-                    </Button>
-                  </form>
+                  <DeleteCommentForm
+                    commentId={comment.id}
+                    disabled={isPending || isMutating}
+                    onDelete={handleDeleteComment}
+                  />
                 </div>
               ) : null}
             </article>
@@ -201,6 +205,48 @@ export function CommentsSection({
         </p>
       ) : null}
     </section>
+  );
+}
+
+function DeleteCommentForm({
+  commentId,
+  disabled,
+  onDelete,
+}: {
+  commentId: string;
+  disabled: boolean;
+  onDelete: (formData: FormData) => void;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <form ref={formRef} action={onDelete}>
+        <input name="commentId" type="hidden" value={commentId} />
+        <AlertDialogTrigger
+          disabled={disabled}
+          render={<Button size="sm" type="button" variant="ghost" />}
+        >
+          删除
+        </AlertDialogTrigger>
+      </form>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>确认删除评论？</AlertDialogTitle>
+          <AlertDialogDescription>删除后评论内容将无法恢复。</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={() => formRef.current?.requestSubmit()}
+          >
+            确认删除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
