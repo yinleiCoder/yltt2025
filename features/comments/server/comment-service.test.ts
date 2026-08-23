@@ -139,7 +139,15 @@ describe("listPublicComments", () => {
     const eqContent = vi.fn().mockReturnValue({ eq: eqStatus });
     const select = vi.fn().mockReturnValue({ eq: eqContent });
     mocks.createServerSupabaseClient.mockResolvedValue({ from: vi.fn().mockReturnValue({ select }) });
-    mocks.listPublicProfiles.mockResolvedValue([{ id: "other-profile", avatarUrl: null, displayName: "公开昵称" }]);
+    mocks.listPublicProfiles.mockResolvedValue([
+      {
+        id: "other-profile",
+        avatarUrl: null,
+        displayName: "公开昵称",
+        email: "public@example.com",
+        age: 36,
+      },
+    ]);
 
     await expect(listPublicComments("content-1")).resolves.toEqual([
       {
@@ -147,7 +155,14 @@ describe("listPublicComments", () => {
         authorId: "other-profile",
         body: "公开评论",
         createdAt: "2026-08-21T01:00:00.000Z",
-        author: { id: "other-profile", avatarUrl: null, displayName: "公开昵称", canViewFullProfile: false },
+        author: {
+          id: "other-profile",
+          avatarUrl: null,
+          displayName: "公开昵称",
+          email: "public@example.com",
+          age: 36,
+          canViewFullProfile: false,
+        },
       },
     ]);
 
@@ -177,9 +192,11 @@ describe("listPublicComments", () => {
       id: "self-profile",
       avatarUrl: "https://cdn.example.com/self.jpg",
       displayName: "我的昵称",
+      email: "self@example.com",
       realName: "我的真实姓名",
       phone: "13800000000",
       address: "上海市",
+      birthDate: "1990-06-15",
       gender: "female",
       publicGender: false,
       publicRealName: false,
@@ -193,6 +210,8 @@ describe("listPublicComments", () => {
       id: "self-profile",
       avatarUrl: "https://cdn.example.com/self.jpg",
       displayName: "我的昵称",
+      email: "self@example.com",
+      age: 36,
       realName: "我的真实姓名",
       phone: "13800000000",
       address: "上海市",
@@ -227,11 +246,11 @@ describe("listPublicComments", () => {
     mocks.getCurrentProfile.mockResolvedValue({ id: "admin-profile", role: "admin" });
     mocks.listAdministratorProfileDetails.mockResolvedValue([
       {
-        id: "profile-1", avatarUrl: null, displayName: "作者一", realName: "作者一姓名", phone: "13800000001", address: "北京", gender: "male",
+        id: "profile-1", avatarUrl: null, displayName: "作者一", email: "author@example.com", realName: "作者一姓名", phone: "13800000001", address: "北京", birthDate: "1990-06-15", gender: "male",
         publicGender: false, publicRealName: false, publicPhone: false, publicAddress: false,
       },
       {
-        id: "profile-2", avatarUrl: null, displayName: "作者二", realName: null, phone: null, address: null, gender: null,
+        id: "profile-2", avatarUrl: null, displayName: "作者二", email: null, realName: null, phone: null, address: null, birthDate: null, gender: null,
         publicGender: true, publicRealName: true, publicPhone: true, publicAddress: true,
       },
     ]);
@@ -244,7 +263,7 @@ describe("listPublicComments", () => {
     expect(result).toEqual([
       {
         id: "comment-1", authorId: "profile-1", body: "第一条", createdAt: "2026-08-21T02:00:00.000Z",
-        author: { id: "profile-1", avatarUrl: null, displayName: "作者一", realName: "作者一姓名", phone: "13800000001", address: "北京", gender: "male", canViewFullProfile: true },
+        author: { id: "profile-1", avatarUrl: null, displayName: "作者一", email: "author@example.com", age: 36, realName: "作者一姓名", phone: "13800000001", address: "北京", gender: "male", canViewFullProfile: true },
       },
       {
         id: "comment-2", authorId: "profile-2", body: "第二条", createdAt: "2026-08-21T01:00:00.000Z",

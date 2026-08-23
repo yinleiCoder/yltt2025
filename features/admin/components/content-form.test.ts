@@ -12,4 +12,12 @@ describe("ContentForm async feedback", () => {
     expect(source).toContain("aria-busy={isPending || isUploading || isSubmitting}");
     expect(source).toContain("disabled={isLocating}");
   });
+
+  it("renders the story gallery as a separate section below Markdown", async () => {
+    const source = await readFile(resolve(import.meta.dirname, "content-form.tsx"), "utf8");
+
+    expect(source).toContain('data-testid="story-image-gallery-upload"');
+    expect(source.indexOf("<StoryMarkdownEditor")).toBeLessThan(source.indexOf('data-testid="story-image-gallery-upload"'));
+    expect(source.indexOf('data-testid="story-image-gallery-upload"')).toBeLessThan(source.indexOf("<StoryImageUpload"));
+  });
 });

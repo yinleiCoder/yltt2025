@@ -6,9 +6,12 @@ import { randomUUID } from "crypto";
 import {
   createAvatarObjectKey,
   createMediaObjectKey,
+  createStoryImageObjectKey,
+  type ContentUploadTarget,
   type MediaKind,
   validateAvatarUpload,
   validateMediaUpload,
+  validateStoryImageUpload,
 } from "@/features/media/domain/upload-policy";
 import { getOssEnvironment } from "@/lib/env";
 
@@ -42,15 +45,12 @@ type OssPostPolicyClient = {
   generateObjectUrl(name: string): string;
 };
 
-export function issueOssUploadSignature(input: UploadSignatureInput): UploadSignature {
-  const upload = validateMediaUpload(input);
+export function issueOssUploadSignature(input: UploadSignatureInput, target: ContentUploadTarget = "media"): UploadSignature {
+  const upload = target === "story-image" ? validateStoryImageUpload(input) : validateMediaUpload(input);
   const environment = getOssEnvironment();
-  const objectKey = createMediaObjectKey({
-    kind: upload.kind,
-    originalName: input.name,
-    timestamp: new Date(),
-    token: randomUUID(),
-  });
+  const objectKey = target === "story-image"
+    ? createStoryImageObjectKey({ originalName: input.name, timestamp: new Date(), token: randomUUID() })
+    : createMediaObjectKey({ kind: upload.kind, originalName: input.name, timestamp: new Date(), token: randomUUID() });
   const client = new OSS({
     region: environment.OSS_REGION,
     bucket: environment.OSS_BUCKET,

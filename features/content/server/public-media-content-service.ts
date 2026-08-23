@@ -33,6 +33,7 @@ type StoryRecord = {
   excerpt: string | null;
   markdown_body: string | null;
   published_at: string;
+  story_images: RelatedRecord<{ object_key: string; sort_order: number }>;
 };
 
 export type PublicVideoItem = PublicVideo & {
@@ -66,7 +67,7 @@ const videoSelect = `
   )
 `;
 
-const storySelect = "id, slug, title, excerpt, markdown_body, published_at";
+const storySelect = "id, slug, title, excerpt, markdown_body, published_at, story_images (object_key, sort_order)";
 
 export async function getPublicVideos(): Promise<PublicVideoArchive> {
   const mediaBaseUrl = getPublicMediaBaseUrl();
@@ -106,6 +107,7 @@ export async function getPublicVideoBySlug(slug: string): Promise<PublicVideoIte
 }
 
 export async function getPublicStories(): Promise<PublicStoryArchive> {
+  const mediaBaseUrl = getPublicMediaBaseUrl();
   if (!hasPublicSupabaseEnvironment()) return { items: [] };
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
@@ -115,10 +117,11 @@ export async function getPublicStories(): Promise<PublicStoryArchive> {
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false })
+    .order("sort_order", { ascending: true, foreignTable: "story_images" })
     .limit(48);
 
   if (error) throw new Error(`Could not load stories: ${error.message}`);
-  return { items: toStoryItems(data as StoryRecord[] | null) };
+  return { items: toStoryItems(data as StoryRecord[] | null, mediaBaseUrl) };
 }
 
 export async function getPublicStoryBySlug(slug: string): Promise<PublicStoryItem | null> {
@@ -131,10 +134,11 @@ export async function getPublicStoryBySlug(slug: string): Promise<PublicStoryIte
     .eq("slug", slug)
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
+    .order("sort_order", { ascending: true, foreignTable: "story_images" })
     .maybeSingle();
 
   if (error) throw new Error(`Could not load story detail: ${error.message}`);
-  return data ? toStoryItems([data as StoryRecord])[0] ?? null : null;
+  return data ? toStoryItems([data as StoryRecord], mediaBaseUrl)[0] ?? null : null;
 }
 
 function toVideoItems(records: VideoRecord[] | null, mediaBaseUrl: string | null): PublicVideoItem[] {
@@ -169,7 +173,7 @@ function toVideoItems(records: VideoRecord[] | null, mediaBaseUrl: string | null
   });
 }
 
-function toStoryItems(records: StoryRecord[] | null): PublicStoryItem[] {
+function toStoryItems(records: StoryRecord[] | null, mediaBaseUrl: string | null): PublicStoryItem[] {
   return (records ?? []).map((record) => {
     const row: PublicStoryRow = {
       id: record.id,
@@ -178,7 +182,11 @@ function toStoryItems(records: StoryRecord[] | null): PublicStoryItem[] {
       excerpt: record.excerpt,
       publishedAt: record.published_at,
       markdownBody: record.markdown_body ?? "",
+      images: (Array.isArray(record.story_images) ? record.story_images : record.story_images ? [record.story_images] : [])
+        .sort((left, right) => left.sort_order - right.sort_order)
+        .map((image) => ({ objectKey: image.object_key, imageUrl: mediaBaseUrl ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: image.object_key, imageWidth: 1800 }) : null })),
     };
     return toPublicStory(row);
   });
 }
+  const mediaBaseUrl = getPublicMediaBaseUrl();

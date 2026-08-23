@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import type { PublicStoryItem } from "@/features/content/server/public-media-content-service";
 import { StoryMarkdown } from "@/features/content/components/story-markdown";
+import { StoryImageGallery } from "@/features/media-content/components/story-image-gallery";
 
 export function StoryDetail({
   story,
@@ -40,6 +41,7 @@ export function StoryDetail({
             markdown={story.markdownBody}
             unstyled
           />
+          <StoryImageGallery images={story.images} storyTitle={story.title} />
           {comments}
         </div>
       </article>

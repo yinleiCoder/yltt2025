@@ -8,6 +8,7 @@ const verifiedMediaUploadErrors = new Set([
   "上传请求格式不正确。",
   "照片文件不能超过 25 MB。",
   "视频文件不能超过 500 MB。",
+  "故事图片仅支持 JPEG、PNG 或 WebP 图片。",
   "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
   "无法创建媒体上传地址。",
 ]);
@@ -28,14 +29,14 @@ export class ContentMediaUploadError extends Error {
   }
 }
 
-export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch): Promise<string> {
+export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch, target: "media" | "story-image" = "media"): Promise<string> {
   let signatureResponse: Response;
 
   try {
     signatureResponse = await fetcher("/api/admin/media/upload-signature", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: file.name, mimeType: file.type, size: file.size }),
+      body: JSON.stringify({ name: file.name, mimeType: file.type, size: file.size, target }),
     });
   } catch {
     throw new ContentMediaUploadError(contentMediaPreparationError);
@@ -46,7 +47,7 @@ export async function uploadContentMedia(file: File, fetcher: Fetcher = fetch): 
     throw new ContentMediaUploadError(getVerifiedMediaUploadError(payload));
   }
 
-  if (!isContentUploadSignature(payload)) {
+  if (!isContentUploadSignature(payload, target)) {
     throw new ContentMediaUploadError(contentMediaPreparationError);
   }
 
@@ -100,7 +101,7 @@ function getVerifiedMediaUploadError(payload: unknown): string {
   return contentMediaPreparationError;
 }
 
-function isContentUploadSignature(payload: unknown): payload is ContentUploadSignature {
+function isContentUploadSignature(payload: unknown, target: "media" | "story-image"): payload is ContentUploadSignature {
   if (typeof payload !== "object" || payload === null) return false;
 
   const candidate = payload as Partial<ContentUploadSignature>;
@@ -115,7 +116,8 @@ function isContentUploadSignature(payload: unknown): payload is ContentUploadSig
 
   try {
     new URL(candidate.uploadUrl);
-    return candidate.objectKey.startsWith(candidate.kind === "photo" ? "photos/" : "videos/");
+    const expectedPrefix = target === "story-image" ? "stories/" : candidate.kind === "photo" ? "photos/" : "videos/";
+    return candidate.objectKey.startsWith(expectedPrefix);
   } catch {
     return false;
   }

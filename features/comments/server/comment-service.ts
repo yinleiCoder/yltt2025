@@ -85,6 +85,8 @@ function toCommentAuthor(profile: PublicProfile | undefined): CommentAuthor | nu
     id: profile.id,
     avatarUrl: profile.avatarUrl,
     displayName: profile.displayName,
+    ...(publicText(profile.email) ? { email: publicText(profile.email) } : {}),
+    ...(isValidAge(profile.age) ? { age: profile.age } : {}),
     ...(profile.gender ? { gender: profile.gender } : {}),
     ...(publicText(profile.realName) ? { realName: publicText(profile.realName) } : {}),
     ...(publicText(profile.phone) ? { phone: publicText(profile.phone) } : {}),
@@ -100,6 +102,10 @@ function toFullCommentAuthor(profile: CurrentProfileDetails | undefined): Commen
     id: profile.id,
     avatarUrl: profile.avatarUrl,
     displayName: profile.displayName,
+    ...(privateText(profile.email) ? { email: privateText(profile.email) } : {}),
+    ...(ageFromBirthDate(profile.birthDate) !== undefined
+      ? { age: ageFromBirthDate(profile.birthDate) }
+      : {}),
     ...(profile.gender ? { gender: profile.gender } : {}),
     ...(privateText(profile.realName) ? { realName: privateText(profile.realName) } : {}),
     ...(privateText(profile.phone) ? { phone: privateText(profile.phone) } : {}),
@@ -113,7 +119,29 @@ function publicText(value: string | undefined): string | undefined {
   return trimmed || undefined;
 }
 
-function privateText(value: string | null): string | undefined {
+function privateText(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+function isValidAge(value: number | undefined): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function ageFromBirthDate(value: string | null): number | undefined {
+  const normalized = value?.trim();
+  if (!normalized) return undefined;
+
+  const birthDate = new Date(`${normalized}T00:00:00Z`);
+  const today = new Date();
+  if (Number.isNaN(birthDate.getTime()) || birthDate > today) return undefined;
+
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const hasBirthdayPassed =
+    today.getUTCMonth() > birthDate.getUTCMonth() ||
+    (today.getUTCMonth() === birthDate.getUTCMonth() &&
+      today.getUTCDate() >= birthDate.getUTCDate());
+  if (!hasBirthdayPassed) age -= 1;
+
+  return age >= 0 ? age : undefined;
 }

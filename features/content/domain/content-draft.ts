@@ -6,6 +6,8 @@ const objectKeySchema = z
     message: "Enter a valid media object key.",
   });
 
+const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp)$/i);
+
 const draftSchema = z
   .object({
     kind: z.enum(["photo", "video", "story"]),
@@ -16,6 +18,7 @@ const draftSchema = z
     isFeatured: z.boolean(),
     publishNow: z.boolean(),
     objectKey: objectKeySchema.optional(),
+    storyImageObjectKeys: z.array(storyImageObjectKeySchema).default([]),
     aperture: z.number().optional(),
     shutterSpeed: z.string().max(30).optional(),
     iso: z.number().optional(),
@@ -38,6 +41,10 @@ const draftSchema = z
         path: ["objectKey"],
         message: "A media object key is required for photos and videos.",
       });
+    }
+
+    if (draft.kind !== "story" && draft.storyImageObjectKeys.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["storyImageObjectKeys"], message: "Story image object keys are only valid for stories." });
     }
 
     if (draft.locationVisibility === "city" && (!draft.city || !draft.region)) {

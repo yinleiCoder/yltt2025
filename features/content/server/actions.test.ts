@@ -51,6 +51,25 @@ describe("content actions", () => {
     });
   });
 
+  it("accepts fields prefixed by the React action-state encoder", async () => {
+    mocks.createAdminContentItem.mockResolvedValue({ slug: "prefixed-story" });
+    const formData = new FormData();
+    formData.set("_1_kind", "story");
+    formData.set("_1_title", "夏日晚风");
+    formData.set("_1_locationVisibility", "hidden");
+    formData.append("_1_storyImageObjectKey", "stories/2026/08/story-image.png");
+
+    await expect(createContentAction({}, formData)).resolves.toEqual({
+      success: "内容已保存为草稿。",
+      publicPath: undefined,
+    });
+    expect(mocks.createAdminContentItem).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "story",
+      title: "夏日晚风",
+      storyImageObjectKeys: ["stories/2026/08/story-image.png"],
+    }));
+  });
+
   it("maps an update service failure to a stable Chinese message", async () => {
     mocks.updateAdminContentItem.mockRejectedValue(new Error("Invalid content id."));
     const formData = createStoryFormData();

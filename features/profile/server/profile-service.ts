@@ -96,7 +96,7 @@ export async function listAdministratorProfileDetails(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, avatar_url, display_name, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date",
+      "id, avatar_url, display_name, email, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date",
     )
     .in("id", requestedProfileIds);
 
@@ -108,6 +108,7 @@ export async function listAdministratorProfileDetails(
     id: profile.id as string,
     avatarUrl: profile.avatar_url as string | null,
     displayName: profile.display_name as string | null,
+    email: profile.email as string | null,
     realName: profile.real_name as string | null,
     phone: profile.phone as string | null,
     address: profile.address as string | null,

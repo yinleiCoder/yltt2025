@@ -13,6 +13,7 @@ const uploadRequestSchema = z.object({
   name: z.string().min(1).max(255),
   mimeType: z.string().min(1).max(100),
   size: z.number().int().positive(),
+  target: z.enum(["media", "story-image"]).default("media"),
 });
 
 const verifiedUploadPolicyErrors = new Set([
@@ -44,7 +45,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const signature = issueOssUploadSignature(input);
+    const { target, ...upload } = input;
+    const signature = issueOssUploadSignature(upload, target);
 
     return NextResponse.json(
       {

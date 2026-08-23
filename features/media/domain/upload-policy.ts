@@ -1,4 +1,5 @@
 export type MediaKind = "photo" | "video";
+export type ContentUploadTarget = "media" | "story-image";
 
 type MediaUpload = {
   name: string;
@@ -57,6 +58,24 @@ export function validateMediaUpload(upload: MediaUpload): {
   throw new UploadPolicyError(
     "仅支持 JPEG、PNG、WebP 图片和 H.264/AAC MP4 视频。",
   );
+}
+
+export function validateStoryImageUpload(upload: MediaUpload): { kind: "photo"; mimeType: string } {
+  if (!PHOTO_MIME_TYPES.has(upload.mimeType)) {
+    throw new UploadPolicyError("故事图片仅支持 JPEG、PNG 或 WebP 图片。");
+  }
+
+  if (upload.size > MAX_PHOTO_BYTES) {
+    throw new UploadPolicyError("照片文件不能超过 25 MB。");
+  }
+
+  return { kind: "photo", mimeType: upload.mimeType };
+}
+
+export function createStoryImageObjectKey(input: Omit<MediaObjectKeyInput, "kind">): string {
+  const year = input.timestamp.getUTCFullYear();
+  const month = String(input.timestamp.getUTCMonth() + 1).padStart(2, "0");
+  return `stories/${year}/${month}/${input.token}-${fileStem(input.originalName)}.${extensionFor(input.originalName, "photo")}`;
 }
 
 export class AvatarObjectKeyError extends Error {

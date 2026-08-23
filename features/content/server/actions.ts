@@ -20,12 +20,12 @@ export type CreateContentState = {
 
 export type UpdateContentState = CreateContentState;
 
-function optionalText(value: FormDataEntryValue | null) {
+function optionalText(value: FormDataEntryValue | null | undefined) {
   const text = String(value ?? "").trim();
   return text || undefined;
 }
 
-function optionalNumber(value: FormDataEntryValue | null) {
+function optionalNumber(value: FormDataEntryValue | null | undefined) {
   const text = optionalText(value);
   return text ? Number(text) : undefined;
 }
@@ -57,7 +57,7 @@ export async function updateContentAction(
   formData: FormData,
 ): Promise<UpdateContentState> {
   try {
-    const id = String(formData.get("id") ?? "");
+    const id = String(readFormValue(formData, "id") ?? "");
     const draft = parseAdminContentDraft(readDraftFormData(formData));
     const result = await updateAdminContentItem(id, draft);
     revalidateContentPaths(draft.kind, result.slug, result.previousSlug);
@@ -77,7 +77,7 @@ export async function updateContentAction(
 }
 
 export async function deleteContentAction(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
+  const id = String(readFormValue(formData, "id") ?? "");
   const result = await deleteAdminContentItem(id);
 
   revalidatePath("/admin");
@@ -91,29 +91,56 @@ export async function deleteContentAction(formData: FormData) {
 
 function readDraftFormData(formData: FormData) {
   return {
-    kind: formData.get("kind"),
-    title: formData.get("title"),
-    slug: formData.get("slug"),
-    excerpt: optionalText(formData.get("excerpt")),
-    markdownBody: optionalText(formData.get("markdownBody")),
-    isFeatured: formData.get("isFeatured") === "on",
-    publishNow: formData.get("publishNow") === "on",
-    objectKey: optionalText(formData.get("objectKey")),
-    aperture: optionalNumber(formData.get("aperture")),
-    shutterSpeed: optionalText(formData.get("shutterSpeed")),
-    iso: optionalNumber(formData.get("iso")),
-    focalLengthMm: optionalNumber(formData.get("focalLengthMm")),
-    cameraMake: optionalText(formData.get("cameraMake")),
-    cameraModel: optionalText(formData.get("cameraModel")),
-    lens: optionalText(formData.get("lens")),
-    capturedAt: optionalText(formData.get("capturedAt")),
-    locationVisibility: formData.get("locationVisibility") ?? "hidden",
-    locationLabel: optionalText(formData.get("locationLabel")),
-    city: optionalText(formData.get("city")),
-    region: optionalText(formData.get("region")),
-    latitude: optionalNumber(formData.get("latitude")),
-    longitude: optionalNumber(formData.get("longitude")),
+    kind: readFormValue(formData, "kind"),
+    title: readFormValue(formData, "title"),
+    slug: readFormValue(formData, "slug"),
+    excerpt: optionalText(readFormValue(formData, "excerpt")),
+    markdownBody: optionalText(readFormValue(formData, "markdownBody")),
+    isFeatured: readFormValue(formData, "isFeatured") === "on",
+    publishNow: readFormValue(formData, "publishNow") === "on",
+    objectKey: optionalText(readFormValue(formData, "objectKey")),
+    storyImageObjectKeys: readFormValues(formData, "storyImageObjectKey").map(String),
+    aperture: optionalNumber(readFormValue(formData, "aperture")),
+    shutterSpeed: optionalText(readFormValue(formData, "shutterSpeed")),
+    iso: optionalNumber(readFormValue(formData, "iso")),
+    focalLengthMm: optionalNumber(readFormValue(formData, "focalLengthMm")),
+    cameraMake: optionalText(readFormValue(formData, "cameraMake")),
+    cameraModel: optionalText(readFormValue(formData, "cameraModel")),
+    lens: optionalText(readFormValue(formData, "lens")),
+    capturedAt: optionalText(readFormValue(formData, "capturedAt")),
+    locationVisibility: readFormValue(formData, "locationVisibility") ?? "hidden",
+    locationLabel: optionalText(readFormValue(formData, "locationLabel")),
+    city: optionalText(readFormValue(formData, "city")),
+    region: optionalText(readFormValue(formData, "region")),
+    latitude: optionalNumber(readFormValue(formData, "latitude")),
+    longitude: optionalNumber(readFormValue(formData, "longitude")),
   };
+}
+
+function readFormValue(formData: FormData, name: string) {
+  const direct = formData.get(name);
+  if (direct !== null) return direct;
+
+  for (const key of formData.keys()) {
+    if (/^_\d+_/.test(key) && key.slice(key.indexOf("_", 1) + 1) === name) {
+      return formData.get(key);
+    }
+  }
+
+  return undefined;
+}
+
+function readFormValues(formData: FormData, name: string) {
+  const direct = formData.getAll(name);
+  if (direct.length) return direct;
+
+  const values: FormDataEntryValue[] = [];
+  for (const key of formData.keys()) {
+    if (/^_\d+_/.test(key) && key.slice(key.indexOf("_", 1) + 1) === name) {
+      values.push(...formData.getAll(key));
+    }
+  }
+  return values;
 }
 
 function publicPathFor(kind: "photo" | "video" | "story", slug: string) {

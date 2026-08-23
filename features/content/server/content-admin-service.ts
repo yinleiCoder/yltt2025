@@ -1,6 +1,8 @@
 import type { AdminContentDraft } from "@/features/content/domain/content-draft";
 import { requireAdministrator } from "@/features/auth/server/auth-service";
 import { deleteOssObject } from "@/features/media/server/oss-service";
+import { createPublicMediaUrl } from "@/features/media/domain/public-media-url";
+import { getPublicMediaBaseUrl } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const contentIdPattern = /^[0-9a-f-]{36}$/i;
@@ -37,6 +39,7 @@ export type AdminContentItem = {
     durationSeconds: number | null;
     codec: string;
   } | null;
+  storyImages: { objectKey: string; sortOrder: number; imageUrl: string | null }[];
 };
 
 export async function createAdminContentItem(draft: AdminContentDraft) {
@@ -66,10 +69,19 @@ export async function createAdminContentItem(draft: AdminContentDraft) {
     .single();
 
   if (itemError || !item) {
+    if (draft.kind === "story") for (const objectKey of draft.storyImageObjectKeys) await tryDeleteOssObject(objectKey);
     throw new Error("创建内容失败。");
   }
 
   if (draft.kind === "story") {
+    if (draft.storyImageObjectKeys.length) {
+      const { error } = await supabase.from("story_images").insert(draft.storyImageObjectKeys.map((objectKey, sortOrder) => ({ content_id: item.id, object_key: objectKey, sort_order: sortOrder })));
+      if (error) {
+        await supabase.from("content_items").delete().eq("id", item.id);
+        for (const objectKey of draft.storyImageObjectKeys) await tryDeleteOssObject(objectKey);
+        throw new Error("创建故事图片失败。");
+      }
+    }
     return { id: item.id as string, slug: generatedSlug };
   }
 
@@ -130,7 +142,8 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
       latitude,
       longitude,
       photo_details (object_key, camera_make, camera_model, lens, aperture, shutter_speed, iso, focal_length_mm, captured_at),
-      video_details (object_key, duration_seconds, codec)
+      video_details (object_key, duration_seconds, codec),
+      story_images (object_key, sort_order)
     `)
     .eq("id", id)
     .maybeSingle();
@@ -140,6 +153,8 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
 
   const photo = Array.isArray(data.photo_details) ? data.photo_details[0] : data.photo_details;
   const video = Array.isArray(data.video_details) ? data.video_details[0] : data.video_details;
+  const storyImages = Array.isArray(data.story_images) ? data.story_images : [];
+  const mediaBaseUrl = getPublicMediaBaseUrl();
 
   return {
     id: data.id as string,
@@ -173,6 +188,11 @@ export async function getAdminContentItem(id: string): Promise<AdminContentItem 
       durationSeconds: video.duration_seconds as number | null,
       codec: video.codec as string,
     } : null,
+    storyImages: storyImages.map((image) => ({
+      objectKey: image.object_key as string,
+      sortOrder: Number(image.sort_order),
+      imageUrl: mediaBaseUrl ? createPublicMediaUrl({ baseUrl: mediaBaseUrl, objectKey: image.object_key as string, imageWidth: 800 }) : null,
+    })),
   };
 }
 
@@ -240,8 +260,21 @@ export async function updateAdminContentItem(id: string, draft: AdminContentDraf
     if (error) throw new Error("更新视频详情失败。");
   }
 
+  let cleanupWarning: string | undefined;
+  if (draft.kind === "story") {
+    const previousKeys = new Set(existing.storyImages.map((image) => image.objectKey));
+    const { error } = await supabase.from("story_images").delete().eq("content_id", id);
+    if (error) throw new Error("更新故事图片失败。");
+    if (draft.storyImageObjectKeys.length) {
+      const { error: insertError } = await supabase.from("story_images").insert(draft.storyImageObjectKeys.map((objectKey, sortOrder) => ({ content_id: id, object_key: objectKey, sort_order: sortOrder })));
+      if (insertError) throw new Error("更新故事图片失败。");
+    }
+    const nextKeys = new Set(draft.storyImageObjectKeys);
+    for (const objectKey of previousKeys) if (!nextKeys.has(objectKey)) cleanupWarning = await tryDeleteOssObject(objectKey) ?? cleanupWarning;
+  }
+
   const previousObjectKey = existing.photo?.objectKey ?? existing.video?.objectKey ?? existing.coverObjectKey;
-  const cleanupWarning = previousObjectKey && previousObjectKey !== nextObjectKey
+  cleanupWarning = previousObjectKey && previousObjectKey !== nextObjectKey
     ? await tryDeleteOssObject(previousObjectKey)
     : undefined;
 
@@ -260,7 +293,7 @@ export async function deleteAdminContentItem(id: string) {
   if (error) throw new Error("删除内容失败。");
 
   const objectKeys = new Set(
-    [existing.coverObjectKey, existing.photo?.objectKey, existing.video?.objectKey]
+    [existing.coverObjectKey, existing.photo?.objectKey, existing.video?.objectKey, ...existing.storyImages.map((image) => image.objectKey)]
       .filter((value): value is string => Boolean(value)),
   );
   const warnings: string[] = [];

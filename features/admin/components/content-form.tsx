@@ -23,6 +23,7 @@ import {
   type PhotoExifFormValues,
 } from "@/features/media/domain/photo-exif-form";
 import { MediaFilePreview } from "@/features/media/components/media-file-preview";
+import { StoryImageUpload } from "@/features/admin/components/story-image-upload";
 import { StoryMarkdownEditor } from "@/features/admin/components/story-markdown-editor";
 import {
   CurrentLocationError,
@@ -47,6 +48,11 @@ export type ContentFormInitialValues = {
   slug?: string;
   excerpt?: string | null;
   markdownBody?: string | null;
+  storyImages?: {
+    objectKey: string;
+    sortOrder: number;
+    imageUrl?: string | null;
+  }[];
   objectKey?: string | null;
   isFeatured?: boolean;
   publishedAt?: string | null;
@@ -90,6 +96,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
   const [exifStatus, setExifStatus] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [storyImagesPending, setStoryImagesPending] = useState(false);
   const [locationValues, setLocationValues] = useState({
     label: initialValues?.locationLabel ?? "",
     city: initialValues?.city ?? "",
@@ -233,7 +240,16 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
         <Field><FieldLabel htmlFor="slug">系统网址标识</FieldLabel><FieldDescription>由系统自动生成，创建后保持不变。</FieldDescription><Input className="font-mono text-xs" defaultValue={initialValues?.slug ?? "创建后生成"} disabled={mode === "create" || !initialValues?.slug} id="slug" name={mode === "edit" ? undefined : "slug"} readOnly={mode === "create"} /><input name={mode === "edit" ? "slug" : undefined} type="hidden" value={initialValues?.slug ?? ""} /></Field>
         <Field><FieldLabel htmlFor="excerpt">摘要</FieldLabel><Textarea defaultValue={initialValues?.excerpt ?? ""} id="excerpt" name="excerpt" /></Field>
       </FieldGroup>
-      {kind === "story" ? <Field><FieldLabel>正文（Markdown）</FieldLabel><StoryMarkdownEditor defaultValue={initialValues?.markdownBody ?? ""} /></Field> : null}
+      {kind === "story" ? <>
+        <Field><FieldLabel>正文（Markdown）</FieldLabel><StoryMarkdownEditor defaultValue={initialValues?.markdownBody ?? ""} /></Field>
+        <section aria-labelledby="story-image-gallery-label" className="grid gap-3 rounded-lg border bg-muted/10 p-4" data-testid="story-image-gallery-upload">
+          <div className="grid gap-1">
+            <h2 className="text-sm font-medium" id="story-image-gallery-label">文后图集</h2>
+            <FieldDescription>可一次选择多张图片，保存后将显示在故事正文之后。</FieldDescription>
+          </div>
+          <StoryImageUpload initialImages={initialValues?.storyImages ?? []} onPendingChange={setStoryImagesPending} />
+        </section>
+      </> : null}
       {kind !== "story" ? <Field><FieldLabel>{isEdit ? "替换媒体（可选）" : kind === "photo" ? "照片文件" : "短片文件"}</FieldLabel><FieldDescription>{kind === "photo" ? "选择后可点击预览并查看大图。" : "选择后可直接预览视频首帧和控制条。"}</FieldDescription><MediaFilePreview kind={kind} onFile={(file) => void handleMediaChange(file)} onClear={() => setMediaFile(null)} onError={setUploadError} /></Field> : null}
       {kind === "photo" ? <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2"><label htmlFor="aperture">光圈（f 值）</label><Input id="aperture" name="aperture" onChange={(event) => updatePhotoValue("aperture", event.target.value)} placeholder="例如 2.8" type="number" step="0.1" value={photoValues.aperture ?? ""} /></div>
@@ -267,7 +283,7 @@ export function ContentForm({ action, initialValues, mode }: ContentFormProps) {
       {exifStatus ? <p aria-live="polite" className="text-sm text-muted-foreground">{exifStatus}</p> : null}
       {state.warning ? <p aria-live="polite" className="text-sm text-muted-foreground">{state.warning}</p> : null}
       {state.success ? <p aria-live="polite" className="text-sm">{state.success}{state.publicPath ? <> {" "}<Link className="underline underline-offset-4" href={state.publicPath}>查看公开页面</Link></> : null}</p> : null}
-      <Button disabled={isPending || isUploading || isSubmitting} type="submit">{isUploading ? "正在上传" : isPending || isSubmitting ? isEdit ? "正在更新" : "正在创建" : isEdit ? "保存修改" : "创建内容"}</Button>
+      <Button disabled={isPending || isUploading || isSubmitting || storyImagesPending} type="submit">{isUploading ? "正在上传" : isPending || isSubmitting ? isEdit ? "正在更新" : "正在创建" : isEdit ? "保存修改" : "创建内容"}</Button>
     </form>
   );
 }

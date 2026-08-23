@@ -131,7 +131,7 @@ describe("listAdministratorProfileDetails", () => {
 
     expect(inProfiles).toHaveBeenCalledWith("id", ["profile-1"]);
     expect(select).toHaveBeenCalledWith(
-      "id, avatar_url, display_name, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date",
+      "id, avatar_url, display_name, email, real_name, phone, address, birth_date, gender, public_gender, public_real_name, public_phone, public_address, public_birth_date",
     );
   });
 });

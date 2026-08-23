@@ -24,6 +24,7 @@ export type PublicStoryRow = {
   excerpt: string | null;
   publishedAt: string;
   markdownBody: string;
+  images: { objectKey: string; imageUrl: string | null }[];
 };
 
 export type PublicStory = PublicStoryRow;

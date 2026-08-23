@@ -30,6 +30,7 @@ describe("public media content mapping", () => {
       excerpt: "A letter.",
       publishedAt: "2026-08-20T00:00:00.000Z",
       markdownBody: "## The first evening\n\nWe stayed until the lights came on.",
+      images: [],
     };
 
     expect(toPublicStory(row).markdownBody).toContain("## The first evening");

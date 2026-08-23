@@ -4,9 +4,11 @@ import {
   UploadPolicyError,
   createAvatarObjectKey,
   createMediaObjectKey,
+  createStoryImageObjectKey,
   parseOwnedAvatarObjectKey,
   validateAvatarUpload,
   validateMediaUpload,
+  validateStoryImageUpload,
 } from "./upload-policy";
 
 describe("validateMediaUpload", () => {
@@ -41,6 +43,32 @@ describe("createMediaObjectKey", () => {
         token: "a1b2c3d4",
       }),
     ).toBe("photos/2026/08/a1b2c3d4-summer-frame.jpg");
+  });
+});
+
+describe("story image upload policy", () => {
+  it("accepts supported images and creates a story namespace key", () => {
+    expect(
+      validateStoryImageUpload({
+        name: "memory.png",
+        mimeType: "image/png",
+        size: 1024,
+      }),
+    ).toEqual({ kind: "photo", mimeType: "image/png" });
+
+    expect(
+      createStoryImageObjectKey({
+        originalName: "../Memory Photo.png",
+        timestamp: new Date("2026-08-20T00:00:00.000Z"),
+        token: "a1b2c3d4",
+      }),
+    ).toBe("stories/2026/08/a1b2c3d4-memory-photo.png");
+  });
+
+  it("rejects non-image files", () => {
+    expect(() => validateStoryImageUpload({ name: "clip.mp4", mimeType: "video/mp4", size: 1024 })).toThrow(
+      "故事图片仅支持 JPEG、PNG 或 WebP 图片。",
+    );
   });
 });
 
