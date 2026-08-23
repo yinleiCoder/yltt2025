@@ -1,7 +1,6 @@
 "use client";
 
 import { fetchFile } from "@ffmpeg/util";
-import heic2any from "heic2any";
 
 import {
   getPreparedMediaName,
@@ -53,6 +52,7 @@ export async function prepareMediaFile(
 
 async function prepareHeicFile(file: File, onProgress?: TranscodeProgressHandler): Promise<File> {
   try {
+    const { default: heic2any } = await import("heic2any");
     onProgress?.(10);
     const converted = await heic2any({ blob: file, toType: "image/webp", quality: 0.85 });
     const blob = Array.isArray(converted) ? converted[0] : converted;
