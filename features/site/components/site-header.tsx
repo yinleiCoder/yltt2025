@@ -18,19 +18,19 @@ export function SiteHeader() {
         className="flex items-center gap-3 text-xs text-[#222222] sm:gap-4"
       >
         <Link
-          className="hidden text-[#222222] transition-colors hover:bg-[#FFF083] sm:inline"
+          className="text-[#222222] transition-colors hover:bg-[#FFF083]"
           href="/photography"
         >
           摄影
         </Link>
         <Link
-          className="hidden transition-colors hover:bg-[#FFF083] sm:inline"
+          className="transition-colors hover:bg-[#FFF083]"
           href="/videos"
         >
           短片
         </Link>
         <Link
-          className="hidden transition-colors hover:bg-[#FFF083] sm:inline"
+          className="transition-colors hover:bg-[#FFF083]"
           href="/stories"
         >
           故事

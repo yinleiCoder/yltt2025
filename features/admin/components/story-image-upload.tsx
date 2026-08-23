@@ -105,6 +105,7 @@ export function StoryImageUpload({
         <input {...getInputProps()} />
         <div className="grid gap-2">
           <p className="text-sm font-medium">{isDragActive ? "松开以添加图片" : "拖入故事图片"}</p>
+          <p className="text-xs text-muted-foreground">支持 JPEG、PNG、WebP、HEIC、HEIF，单个文件不超过 200 MB</p>
           <Button type="button" variant="outline" onClick={open}>选择图片</Button>
         </div>
       </div>

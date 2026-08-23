@@ -22,8 +22,8 @@ type AvatarObjectKeyInput = {
   token: string;
 };
 
-const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 200 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const PHOTO_MIME_TYPES = new Set([
   "image/jpeg",
@@ -53,7 +53,7 @@ export function validateMediaUpload(upload: MediaUpload): {
 
   if (PHOTO_MIME_TYPES.has(mimeType)) {
     if (upload.size > MAX_PHOTO_BYTES) {
-      throw new UploadPolicyError("照片文件不能超过 25 MB。");
+      throw new UploadPolicyError("照片文件不能超过 200 MB。");
     }
 
     return { kind: "photo", mimeType };
@@ -61,7 +61,7 @@ export function validateMediaUpload(upload: MediaUpload): {
 
   if (VIDEO_MIME_TYPES.has(mimeType)) {
     if (upload.size > MAX_VIDEO_BYTES) {
-      throw new UploadPolicyError("视频文件不能超过 500 MB。");
+      throw new UploadPolicyError("视频文件不能超过 2 GB。");
     }
 
     return { kind: "video", mimeType };
@@ -79,7 +79,7 @@ export function validateStoryImageUpload(upload: MediaUpload): { kind: "photo"; 
   }
 
   if (upload.size > MAX_PHOTO_BYTES) {
-    throw new UploadPolicyError("照片文件不能超过 25 MB。");
+    throw new UploadPolicyError("照片文件不能超过 200 MB。");
   }
 
   return { kind: "photo", mimeType };
