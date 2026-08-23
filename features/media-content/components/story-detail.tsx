@@ -36,7 +36,7 @@ export function StoryDetail({
             ) : null}
           </header>
           <StoryMarkdown
-            className="typeset typeset-docs mt-10 max-w-[37em] text-[#222222]"
+            className="typeset typeset-docs mt-10 max-w-full text-[#222222]"
             emptyMessage="还没有正文。"
             markdown={story.markdownBody}
             unstyled
