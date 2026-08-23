@@ -11,6 +11,16 @@ export function VideoDetail({
   video: PublicVideoItem;
   comments: ReactNode;
 }) {
+  const metadata = [
+    video.videoDetails.durationSeconds
+      ? formatDuration(video.videoDetails.durationSeconds)
+      : null,
+    video.videoDetails.width && video.videoDetails.height
+      ? `${video.videoDetails.width} × ${video.videoDetails.height}`
+      : null,
+    formatCodec(video.videoDetails.codec),
+  ].filter((value): value is string => Boolean(value));
+
   return (
     <main className="min-h-dvh bg-[rgb(233,233,233)] text-[#222222]">
       <article className="container mx-auto w-full bg-[rgb(248,248,248)] px-5 pb-20 pt-8 sm:px-8 lg:px-12 lg:pt-12">
@@ -41,25 +51,14 @@ export function VideoDetail({
               </p>
             ) : null}
             {video.location ? <p className="mt-5 font-mono text-xs text-[#222222]">地点 / {formatLocation(video.location)}</p> : null}
-            <dl className="mt-10 divide-y divide-[#d9d9d4] border-y border-[#d9d9d4] font-mono text-xs">
-              <IndexRow
-                label="DURATION"
-                value={
-                  video.videoDetails.durationSeconds
-                    ? formatDuration(video.videoDetails.durationSeconds)
-                    : null
-                }
-              />
-              <IndexRow label="FORMAT" value={formatCodec(video.videoDetails.codec)} />
-              <IndexRow
-                label="FRAME"
-                value={
-                  video.videoDetails.width && video.videoDetails.height
-                    ? `${video.videoDetails.width} × ${video.videoDetails.height}`
-                    : null
-                }
-              />
-            </dl>
+            {metadata.length ? (
+              <section className="mt-10 border-y border-[#d9d9d4] py-3">
+                <h2 className="font-mono text-xs text-[#222222]">视频信息</h2>
+                <p className="mt-2 font-mono text-xs text-[#222222]">
+                  {metadata.join(" · ")}
+                </p>
+              </section>
+            ) : null}
           </div>
         </div>
         {comments}
@@ -76,14 +75,6 @@ function formatCodec(codec: string | null | undefined) {
   return codec ? codec.toUpperCase() : null;
 }
 
-function IndexRow({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="grid grid-cols-[8rem_1fr] gap-4 py-3">
-      <dt className="text-[#222222]">{label}</dt>
-      <dd className="text-[#222222]">{value ?? "—"}</dd>
-    </div>
-  );
-}
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
