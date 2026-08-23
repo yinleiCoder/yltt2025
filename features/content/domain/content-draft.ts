@@ -2,11 +2,22 @@ import { z } from "zod";
 
 const objectKeySchema = z
   .string()
-  .regex(/^(photos|videos)\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|heic|heif|mp4|mov|m4v)$/i, {
+  .trim()
+  .min(1)
+  .max(1024)
+  .refine(isSafeRelativeObjectKey, {
     message: "Enter a valid media object key.",
   });
 
 const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|heic|heif)$/i);
+
+function isSafeRelativeObjectKey(value: string): boolean {
+  if (value.startsWith("/") || value.includes("\\") || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    return false;
+  }
+
+  return value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
 
 const draftSchema = z
   .object({
