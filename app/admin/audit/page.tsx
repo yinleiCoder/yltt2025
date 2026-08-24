@@ -20,7 +20,7 @@ function formatDate(date: string) {
 export default async function AdminAuditPage() {
   const entries = await listRoleAuditLogs();
   return (
-    <main className="container mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main className="container mx-auto min-w-0 w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <header className="border-b pb-6">
         <p className="text-sm text-muted-foreground">角色变更记录</p>
         <h1 className="mt-1 text-2xl font-semibold">审计日志</h1>

@@ -19,7 +19,7 @@ const uploadRequestSchema = z.object({
 const verifiedUploadPolicyErrors = new Set([
   "照片文件不能超过 200 MB。",
   "视频文件不能超过 2 GB。",
-  "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
+  "仅支持 JPEG、PNG、WebP 图片和 MP4 视频。",
 ]);
 
 export async function POST(request: Request) {

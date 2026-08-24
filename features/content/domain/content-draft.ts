@@ -9,7 +9,7 @@ const objectKeySchema = z
     message: "Enter a valid media object key.",
   });
 
-const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp|heic|heif)$/i);
+const storyImageObjectKeySchema = z.string().regex(/^stories\/\d{4}\/\d{2}\/[a-z0-9-]+\.(jpg|png|webp)$/i);
 
 function isSafeRelativeObjectKey(value: string): boolean {
   if (value.startsWith("/") || value.includes("\\") || /^[a-z][a-z0-9+.-]*:/i.test(value)) {

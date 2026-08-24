@@ -1,5 +1,3 @@
-import { prepareMediaFile, mediaTranscodeError } from "@/features/media/client/transcode-media";
-import { needsMediaTranscode } from "@/features/media/client/media-format";
 
 export const contentMediaPreparationError = "媒体上传准备失败，请稍后重试。";
 export const contentMediaUploadError = "媒体上传失败，请稍后重试。";
@@ -11,8 +9,8 @@ const verifiedMediaUploadErrors = new Set([
   "上传请求格式不正确。",
   "照片文件不能超过 200 MB。",
   "视频文件不能超过 2 GB。",
-  "故事图片仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。",
-  "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
+  "故事图片仅支持 JPEG、PNG 或 WebP 图片。",
+  "仅支持 JPEG、PNG、WebP 图片和 MP4 视频。",
   "无法创建媒体上传地址。",
 ]);
 
@@ -40,30 +38,13 @@ export async function uploadContentMedia(
   target: "media" | "story-image" = "media",
   onProgress?: UploadProgressHandler,
 ): Promise<string> {
-  const shouldTranscode = needsMediaTranscode(file);
-  let preparedFile: File;
-  try {
-    preparedFile = await prepareMediaFile(
-      file,
-      onProgress && shouldTranscode
-        ? (percentage) => onProgress(Math.round(percentage * 0.35))
-        : undefined,
-    );
-  } catch (error) {
-    throw new ContentMediaUploadError(
-      error instanceof Error && error.message === mediaTranscodeError
-        ? error.message
-        : contentMediaPreparationError,
-    );
-  }
-
   let signatureResponse: Response;
 
   try {
     signatureResponse = await fetcher("/api/admin/media/upload-signature", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: preparedFile.name, mimeType: preparedFile.type, size: preparedFile.size, target }),
+      body: JSON.stringify({ name: file.name, mimeType: file.type, size: file.size, target }),
     });
   } catch {
     throw new ContentMediaUploadError(contentMediaPreparationError);
@@ -82,11 +63,11 @@ export async function uploadContentMedia(
     const uploadResponse = onProgress
       ? await uploadWithProgress(
           payload.uploadUrl,
-          preparedFile,
+          file,
           payload.mimeType,
-          (percentage) => onProgress(Math.round((shouldTranscode ? 35 : 0) + percentage * (shouldTranscode ? 0.65 : 1))),
+          onProgress,
         )
-      : await fetcher(payload.uploadUrl, { method: "PUT", headers: { "Content-Type": payload.mimeType }, body: preparedFile });
+      : await fetcher(payload.uploadUrl, { method: "PUT", headers: { "Content-Type": payload.mimeType }, body: file });
     if (!uploadResponse.ok) {
       throw new ContentMediaUploadError(contentMediaUploadError);
     }

@@ -132,7 +132,7 @@ export function toFeaturedArchiveItems(
   return items;
 }
 
-const imageObjectExtensions = [".avif", ".gif", ".heic", ".heif", ".jpeg", ".jpg", ".png", ".webp"];
+const imageObjectExtensions = [".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
 function toImageObjectKey(objectKey: string | null): string | null {
   if (!objectKey) return null;

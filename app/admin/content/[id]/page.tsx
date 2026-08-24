@@ -24,7 +24,7 @@ export default async function AdminContentDetailPage({ params }: AdminContentDet
   if (!item) notFound();
 
   return (
-    <main className="container mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="container mx-auto min-w-0 w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-6">
         <div>
           <p className="text-sm text-muted-foreground">{contentKindLabels[item.kind]} · {item.slug}</p>

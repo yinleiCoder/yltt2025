@@ -29,12 +29,8 @@ const PHOTO_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/heic",
-  "image/heif",
-  "image/heic-sequence",
-  "image/heif-sequence",
 ]);
-const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/x-m4v"]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4"]);
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const objectKeySegmentPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -68,14 +64,14 @@ export function validateMediaUpload(upload: MediaUpload): {
   }
 
   throw new UploadPolicyError(
-    "仅支持 JPEG、PNG、WebP、HEIC、HEIF 图片和 MP4、MOV、M4V 视频。",
+    "仅支持 JPEG、PNG、WebP 图片和 MP4 视频。",
   );
 }
 
 export function validateStoryImageUpload(upload: MediaUpload): { kind: "photo"; mimeType: string } {
   const mimeType = resolveMediaMimeType(upload.name, upload.mimeType);
   if (!PHOTO_MIME_TYPES.has(mimeType)) {
-    throw new UploadPolicyError("故事图片仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。");
+    throw new UploadPolicyError("故事图片仅支持 JPEG、PNG 或 WebP 图片。");
   }
 
   if (upload.size > MAX_PHOTO_BYTES) {
@@ -171,8 +167,8 @@ function fileStem(originalName: string): string {
 function extensionFor(originalName: string, kind: MediaKind): string {
   const extension = originalName.split(".").at(-1)?.toLowerCase();
   const permitted = kind === "photo"
-    ? ["jpg", "jpeg", "png", "webp", "heic", "heif"]
-    : ["mp4", "mov", "m4v"];
+    ? ["jpg", "jpeg", "png", "webp"]
+    : ["mp4"];
 
   if (extension && permitted.includes(extension)) {
     return extension === "jpeg" ? "jpg" : extension;
@@ -185,10 +181,6 @@ export function resolveMediaMimeType(originalName: string, mimeType: string): st
   if (mimeType.trim()) return mimeType.toLowerCase();
 
   switch (originalName.split(".").at(-1)?.toLowerCase()) {
-    case "heic": return "image/heic";
-    case "heif": return "image/heif";
-    case "mov": return "video/quicktime";
-    case "m4v": return "video/x-m4v";
     case "jpg":
     case "jpeg": return "image/jpeg";
     case "png": return "image/png";

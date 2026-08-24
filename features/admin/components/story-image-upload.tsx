@@ -25,10 +25,6 @@ const imageAccept: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
   "image/webp": [".webp"],
-  "image/heic": [".heic"],
-  "image/heif": [".heif"],
-  "image/heic-sequence": [".heic"],
-  "image/heif-sequence": [".heif"],
 };
 
 export function StoryImageUpload({
@@ -53,7 +49,7 @@ export function StoryImageUpload({
     multiple: true,
     noClick: true,
     onDropAccepted: (files) => void addFiles(files),
-    onDropRejected: () => setError("请选择 JPEG、PNG、WebP、HEIC 或 HEIF 图片。"),
+    onDropRejected: () => setError("请选择 JPEG、PNG 或 WebP 图片。"),
   });
 
   useEffect(() => { itemsRef.current = items; }, [items]);
@@ -100,16 +96,16 @@ export function StoryImageUpload({
   }
 
   return (
-    <div className="grid gap-3">
-      <div {...getRootProps()} className="grid min-h-32 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center">
+    <div className="grid min-w-0 max-w-full gap-3">
+      <div {...getRootProps()} className="grid min-h-32 min-w-0 max-w-full place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center">
         <input {...getInputProps()} />
         <div className="grid gap-2">
           <p className="text-sm font-medium">{isDragActive ? "松开以添加图片" : "拖入故事图片"}</p>
-          <p className="text-xs text-muted-foreground">支持 JPEG、PNG、WebP、HEIC、HEIF，单个文件不超过 200 MB</p>
+          <p className="text-xs text-muted-foreground">支持 JPEG、PNG、WebP，单个文件不超过 200 MB</p>
           <Button type="button" variant="outline" onClick={open}>选择图片</Button>
         </div>
       </div>
-      {items.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {items.length ? <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3">
         {items.map((item, index) => <div className="grid gap-2 rounded-lg border bg-card p-2" key={item.objectKey}>
           {item.previewUrl ? <PhotoLightbox src={item.previewUrl} alt={`故事图片 ${index + 1}`} className="aspect-square w-full object-cover" /> : <div className="grid aspect-square place-items-center bg-muted text-center text-xs text-muted-foreground">已上传<br />{item.fileName}</div>}
           <input name="storyImageObjectKey" type="hidden" value={item.objectKey} />

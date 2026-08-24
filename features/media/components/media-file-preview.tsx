@@ -11,8 +11,8 @@ export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "ph
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const accept: Accept = kind === "photo"
-    ? { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/heic": [".heic"], "image/heif": [".heif"], "image/heic-sequence": [".heic"], "image/heif-sequence": [".heif"] }
-    : { "video/mp4": [".mp4"], "video/quicktime": [".mov"], "video/x-m4v": [".m4v"] };
+    ? { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] }
+    : { "video/mp4": [".mp4"] };
 
   useEffect(() => {
     if (!file) { setPreviewUrl(null); return; }
@@ -26,7 +26,7 @@ export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "ph
     multiple: false,
     noClick: true,
     onDropAccepted: ([nextFile]) => { if (nextFile) { setFile(nextFile); onFile(nextFile); } },
-    onDropRejected: () => { const message = kind === "photo" ? "请选择 JPEG、PNG、WebP、HEIC 或 HEIF 图片。" : "请选择 MP4、MOV 或 M4V 视频。"; onError?.(message); },
+    onDropRejected: () => { const message = kind === "photo" ? "请选择 JPEG、PNG 或 WebP 图片。" : "请选择 MP4 视频。"; onError?.(message); },
   });
 
   function clearFile() {
@@ -35,8 +35,8 @@ export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "ph
   }
 
   return (
-    <div className="grid gap-3">
-      <div {...getRootProps()} className="grid min-h-40 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center">
+    <div className="grid min-w-0 max-w-full gap-3">
+      <div {...getRootProps()} className="grid min-h-40 min-w-0 max-w-full place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center">
         <input {...getInputProps()} />
         <div className="grid gap-2">
           <p className="text-sm font-medium">{isDragActive ? "松开以添加文件" : kind === "photo" ? "拖入摄影图片" : "拖入短片文件"}</p>
@@ -45,7 +45,7 @@ export function MediaFilePreview({ kind, onFile, onClear, onError }: { kind: "ph
         </div>
       </div>
       {previewUrl && file ? (
-        <div className="grid gap-3 rounded-lg border bg-card p-3">
+        <div className="grid min-w-0 max-w-full gap-3 rounded-lg border bg-card p-3">
           {kind === "photo" ? <PhotoLightbox src={previewUrl} alt={file.name} className="max-h-72 w-full object-contain" /> : <video aria-label={file.name} className="aspect-video w-full bg-black object-contain" controls playsInline preload="metadata" src={previewUrl} />}
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="min-w-0 truncate">{file.name}</span>
