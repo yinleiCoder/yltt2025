@@ -1,5 +1,5 @@
 import { requireAdministrator } from "@/features/auth/server/auth-service";
-import type { UserRole } from "@/features/rbac/domain/role-policy";
+import type { UserRole } from "@/features/admin/domain/role-policy";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export class AdminRoleChangeError extends Error {

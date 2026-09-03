@@ -44,7 +44,7 @@ export function ArchiveHome({ archive }: ArchiveHomeProps) {
               光落下时，故事开始留影
             </h1>
             <p className="mt-7 max-w-md text-sm leading-7 text-[#222222]">
-              摄影、短片与恋爱故事被收进同一组接触表。每一格保留发生的时间、光线与地点。
+              摄影、短片与生活故事被收进同一组接触表。每一格保留发生的时间、光线与地点。
             </p>
           </div>
           <div className="mt-12 flex items-center gap-3 text-xs text-[#222222] lg:mt-20">

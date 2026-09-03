@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPublicStories } from "@/features/content/server/public-media-content-service";
-import { StoryArchive } from "@/features/media-content/components/story-archive";
+import { StoryArchive } from "@/features/stories/components/story-archive";
 
 export const metadata: Metadata = {
   title: "故事",

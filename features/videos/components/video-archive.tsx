@@ -11,7 +11,7 @@ export function VideoArchive({ archive }: { archive: PublicVideoArchive }) {
             <p className="font-mono text-[0.7rem] text-[#222222]">MOTION / SHORT FILMS</p>
             <h1 className="mt-4 font-[family-name:var(--font-editorial)] text-5xl leading-[1.02] sm:text-7xl">让画面继续移动</h1>
           </div>
-          <p className="max-w-sm text-sm leading-7 text-[#222222]">支持 MP4。每段短片保留时长与播放状态。</p>
+          <p className="max-w-sm text-sm leading-7 text-[#222222]">每段短片保留时长与播放状态。</p>
         </div>
 
         {archive.items.length ? (

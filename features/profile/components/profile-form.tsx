@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { AvatarCropDialog } from "@/features/media/components/avatar-crop-dialog";
+import { AvatarCropDialog } from "@/features/profile/components/avatar-crop-dialog";
 import { updateProfileAction, type ProfileMutationState } from "@/features/profile/server/actions";
 import type { ProfileGender } from "@/features/profile/domain/profile-schema";
 import {

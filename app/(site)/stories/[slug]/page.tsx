@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { CommentsSkeleton } from "@/components/feedback/comments-skeleton";
 import { StreamedComments } from "@/features/comments/components/streamed-comments";
 import { getPublicStoryBySlug } from "@/features/content/server/public-media-content-service";
-import { StoryDetail } from "@/features/media-content/components/story-detail";
+import { StoryDetail } from "@/features/stories/components/story-detail";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
 

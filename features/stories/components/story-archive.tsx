@@ -19,7 +19,7 @@ export function StoryArchive({ archive }: { archive: PublicStoryArchive }) {
             </h1>
           </div>
           <p className="max-w-sm text-sm leading-7 text-[#222222]">
-            关于恋爱、时间和一起走过的地方。正文以安全 Markdown 保存与展示。
+            关于恋爱、时间和一起走过的地方。
           </p>
         </div>
         {archive.items.length ? (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPublicVideos } from "@/features/content/server/public-media-content-service";
-import { VideoArchive } from "@/features/media-content/components/video-archive";
+import { VideoArchive } from "@/features/videos/components/video-archive";
 
 export const metadata: Metadata = {
   title: "短片",

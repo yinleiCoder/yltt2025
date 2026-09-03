@@ -17,7 +17,7 @@ import {
   readContentPhotoExif,
   uploadContentMedia,
   type UploadProgressHandler,
-} from "@/features/admin/components/media-upload";
+} from "@/features/media/client/media-upload";
 import { readPhotoExif } from "@/features/media/client/read-photo-exif";
 import { readVideoMetadata, type VideoMetadata } from "@/features/media/client/read-video-metadata";
 import {

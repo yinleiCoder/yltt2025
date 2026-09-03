@@ -6,7 +6,7 @@ import { useDropzone, type Accept } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { PhotoLightbox } from "@/features/media/components/photo-lightbox";
-import { uploadContentMedia } from "@/features/admin/components/media-upload";
+import { uploadContentMedia } from "@/features/media/client/media-upload";
 
 type StoryImageItem = {
   objectKey: string;

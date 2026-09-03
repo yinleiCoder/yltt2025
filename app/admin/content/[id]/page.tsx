@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ContentForm } from "@/features/admin/components/content-form";
 import { DeleteContentForm } from "@/features/admin/components/delete-content-form";
-import { StoryMarkdown } from "@/features/content/components/story-markdown";
+import { StoryMarkdown } from "@/features/stories/components/story-markdown";
 import { updateContentAction } from "@/features/content/server/actions";
 import { getAdminContentItem } from "@/features/content/server/content-admin-service";
 

@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { PublicStoryItem } from "@/features/content/server/public-media-content-service";
-import { StoryMarkdown } from "@/features/content/components/story-markdown";
-import { StoryImageGallery } from "@/features/media-content/components/story-image-gallery";
+import { StoryMarkdown } from "@/features/stories/components/story-markdown";
+import { StoryImageGallery } from "@/features/stories/components/story-image-gallery";
 
 export function StoryDetail({
   story,

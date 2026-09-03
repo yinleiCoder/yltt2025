@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { CommentsSkeleton } from "@/components/feedback/comments-skeleton";
 import { StreamedComments } from "@/features/comments/components/streamed-comments";
 import { getPublicVideoBySlug } from "@/features/content/server/public-media-content-service";
-import { VideoDetail } from "@/features/media-content/components/video-detail";
+import { VideoDetail } from "@/features/videos/components/video-detail";
 
 type VideoPageProps = { params: Promise<{ slug: string }> };
 

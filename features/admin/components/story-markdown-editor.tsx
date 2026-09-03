@@ -5,7 +5,7 @@ import { useState } from "react";
 import "@uiw/react-md-editor/markdown-editor.css";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StoryMarkdown } from "@/features/content/components/story-markdown";
+import { StoryMarkdown } from "@/features/stories/components/story-markdown";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false, loading: () => <div className="min-h-[32.5rem] rounded-lg border bg-muted/20" /> });
 

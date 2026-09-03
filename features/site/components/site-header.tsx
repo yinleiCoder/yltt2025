@@ -8,14 +8,14 @@ export function SiteHeader() {
   return (
     <header className="container mx-auto flex w-full items-center justify-between px-5 py-5 sm:px-8 lg:px-12 sticky top-0 bg-[rgb(233,233,233)] z-50">
       <Link
-        className="font-mono text-xs font-extrabold tracking-[0.18em]"
+        className="font-mono text-xs md:text-sm lg:text-lg font-extrabold tracking-[0.18em]"
         href="/"
       >
         YlTt's 2025
       </Link>
       <nav
         aria-label="公开页面"
-        className="flex items-center gap-3 text-xs text-[#222222] sm:gap-4"
+        className="flex items-center gap-3 text-xs md:text-sm lg:text-lg text-[#222222] sm:gap-4"
       >
         <Link
           className="text-[#222222] transition-colors hover:bg-[#FFF083]"
@@ -47,14 +47,14 @@ function AuthControlsFallback() {
   return (
     <div className="flex items-center gap-2">
       <Link
-        className="inline-flex h-7 items-center gap-1 border border-[#d2d2d2] px-2.5 text-[#222222] transition-colors hover:bg-[#FFF083]"
+        className="inline-flex h-7 items-center gap-1 border border-[#d2d2d2] px-2.5 text-[#222222] transition-colors hover:bg-[#FFF083] md:text-lg"
         href="/login"
       >
         <LogIn size={18} aria-hidden="true" data-icon="inline-start" />
         登录
       </Link>
       <Link
-        className="inline-flex h-7 items-center gap-1 border border-[#d2d2d2] px-2.5 text-[#222222] transition-colors hover:bg-[#FFF083]"
+        className="inline-flex h-7 items-center gap-1 border border-[#d2d2d2] px-2.5 text-[#222222] transition-colors hover:bg-[#FFF083] md:text-lg"
         href="/register"
       >
         <UserPlus size={18} aria-hidden="true" data-icon="inline-start" />

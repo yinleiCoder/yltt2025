@@ -4,7 +4,7 @@ export function AdminPageSkeleton({ editor = false }: { editor?: boolean }) {
   return (
     <main
       aria-busy="true"
-      className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+      className="mx-auto w-full container px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
     >
       <Skeleton className="h-4 w-24" />
       <Skeleton className="mt-3 h-8 w-40" />

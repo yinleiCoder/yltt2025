@@ -6,7 +6,7 @@ export function PublicPageSkeleton() {
       aria-busy="true"
       className="min-h-dvh bg-[rgb(233,233,233)] px-5 py-12 sm:px-8 lg:px-12"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto container">
         <Skeleton className="h-3 w-40" />
         <Skeleton className="mt-6 h-16 max-w-2xl" />
         <Skeleton className="mt-4 h-5 max-w-xl" />
